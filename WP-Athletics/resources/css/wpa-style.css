@@ -1,0 +1,188 @@
+.entry-content th, .comment-content th {
+    text-transform: none;
+    font-size: 1em;
+    text-align: center;
+}
+
+/* My Results Profile */
+
+#wpaProfile {
+	font-size: 12px;
+	height: 130px;
+}
+
+#wpaProfileInfo {
+	width: 350px;
+	float: left;
+	padding: 5px;
+}
+
+#wpaProfilePhoto {
+	height: 120px;
+	width: 120px;
+	float: left;
+	border: 1px solid gray;
+	background: url('http://images.instagram.com/profiles/profile_30931206_75sq_1354567755.jpg') no-repeat;
+}
+
+#wpaProfileAddResult {
+	float: right;
+}
+
+#wpaProfileAddResult button {
+	margin-top: 90px;
+}
+
+.wpa-profile-field {
+	height: 25px;
+	padding-top: 5px;
+}
+
+.wpa-profile-field label {
+	width: 125px;
+	display: inline-block;
+	text-align: right;
+	margin: 0px 5px 0px 0px;
+}
+
+.wpa-profile-field input {
+	padding: 2px;
+	width: 150px;
+}
+
+.wpa-add-result-field {
+	height: 30px;
+	padding-top: 5px;
+}
+
+.wpa-add-result-field label {
+	width: 125px;
+	display: inline-block;
+	text-align: right;
+	margin: 0px 5px 0px 0px;	
+}
+
+.wpa-add-result-field label.required {
+	font-weight: bold;
+	color: #000;
+}
+
+.wpa-add-result-field input {
+	padding: 4px;
+}
+
+.wpa-add-result-field select {
+	padding: 4px 4px 4px 4px !important;
+	padding-bottom: 4px !important;
+	width: 200px;
+}
+
+.ui-datepicker-trigger {
+    cursor: pointer;
+    left: -25px;
+    position: relative;
+    top: 4px;
+}
+
+.add-result-help {
+	height: 20px;
+	width: 20px;
+	display: inline-block;
+	position: relative;
+	cursor: pointer;
+	top: 5px;
+	background: url(../images/help-icon.png) no-repeat;
+}
+
+.add-result-cancel-event {
+	height: 20px;
+	width: 20px;
+	display: inline-block;
+	position: relative;
+	cursor: pointer;
+	top: 5px;
+	left: -55px;
+	background: url(../images/grayx.png) no-repeat;
+	
+}
+
+.ui-tabs-panel {
+	padding: 0px !important;
+}
+
+#tabs {
+	border: none !important;
+}
+
+#tabs ul.ui-tabs-nav {
+	border-bottom-right-radius: 0px !important;
+	border-bottom-left-radius: 0px !important;
+}
+
+.wpa-alert {
+	line-height: 1.5em;
+}
+
+/** DATATABLE STYLES **/
+
+.datatable-bold-right-gray {
+	font-weight:bold; 
+	text-align: right;
+	color: gray;
+}
+
+.datatable-bold {
+	font-weight:bold; 
+}
+
+table.display tr td {
+	white-space: nowrap;
+}
+
+table.display {
+	margin: 0px !important;
+}
+
+.datatable-icon {
+	width: 20px;
+	height: 20px;
+	background-repeat: no-repeat;
+	display: inline-block;
+	background-position: 0 4px;
+	cursor: pointer;
+}
+
+.datatable-icon.garmin {
+	background-image: url(../images/garmin.png)
+}
+
+.datatable-icon.delete {
+	background-image: url(../images/delete.png)
+}
+
+.datatable-icon.edit {
+	background-image: url(../images/edit.png)
+}
+
+/** CUSTOM COMBO BOX **/
+
+.custom-combobox {
+    position: relative;
+    display: inline-block;
+  }
+  
+.custom-combobox-toggle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  margin-left: -1px;
+  padding: 0;
+  /* support: IE7 */
+  *height: 1.7em;
+  *top: 0.1em;
+}
+.custom-combobox-input {
+  margin: 0;
+  padding: 0.3em;
+  background: none;
+}

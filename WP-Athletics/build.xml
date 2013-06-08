@@ -1,0 +1,27 @@
+<project name="WP-Athletics" default="build" basedir=".">
+    <description>
+        build file for WP-Athletics
+    </description>
+  <!-- set global properties for this build -->
+  <property name="dir" location="/Users/cmccauley/Development/PHP/wordpress/wp-content/plugins"/>
+  <property name="folder" location="wp-athletics"/>
+  <property name="destination" location="${dir}/wp-athletics"/>
+	  
+  <target name="build" description="Copies the plugin to a the wordpress plugins directory" >
+  	<!-- delete plugin folder if it already exists -->
+  	<echo message="Deleting existing plugin..." />
+  	<delete dir="${destination}"/>
+  	
+  	<!-- make a new directory -->
+  	<echo message="Creating ${folder}..." />
+  	<mkdir dir="${destination}"/>
+  	
+  	<!-- copy the files -->
+  	<echo message="Copying the wordpress plugin files to ${destination}..." />
+  	<copy todir="${destination}">
+  		<fileset dir=".">
+  	      <exclude name="build.xml"/>
+  	    </fileset>
+  	</copy>
+  </target>
+</project>
