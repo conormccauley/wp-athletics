@@ -1,8 +1,10 @@
 /*
- * Javascript util functions for WPA.
+ * Javascript util/common functions for WPA.
  */
 
 var WPA = {
+		
+	globals: {},
 		
 	/**
 	 * creates a datatables config, merges provided config with default config
@@ -116,6 +118,277 @@ var WPA = {
 		return returnValue != '' ? returnValue.substring(0, returnValue.length -1) : 'Invalid Time';
 	},
 	
+	/**
+	 * Returns age category description object based on ID
+	 */
+	getAgeCategoryDescription: function(id) {
+		var result = '';
+		if(WPA.globals.ageCategories) {
+			jQuery.each(WPA.globals.ageCategories, function(index,obj) {
+				if(obj.id == id) {
+					result = obj.description;
+					return false;
+				}
+			});
+		}
+		return result;
+	},
+	
+	/**
+	 * Returns event sub type description based on ID
+	 */
+	getEventSubTypeDescription: function(id) {
+		var result = '';
+		if(WPA.globals.eventTypes) {
+			jQuery.each(WPA.globals.eventTypes, function(index,obj) {
+				if(obj.id == id) {
+					result = obj.description;
+					return false;
+				}
+			});
+		}
+		return result;
+	},
+	
+	/**
+	 * Returns event category description based on ID
+	 */
+	getEventCategoryDescription: function(id) {
+		var result = '';
+		if(WPA.globals.eventCategories) {
+			jQuery.each(WPA.globals.eventCategories, function(index,obj) {
+				if(obj.id == id) {
+					result = obj.name;
+					return false;
+				}
+			});
+		}
+		return result;
+	},
+	
+	/**
+	 * Displays the user profile dialog
+	 */
+	displayUserProfileDialog: function(userId) {
+		this.closeDialogs();
+		
+		WPA.currentUserProfileId = userId;
+
+		if(WPA.userProfileDialog) {
+			WPA.userProfileDialog.dialog("open");
+			WPA.resultsTable.fnClearTable();
+			WPA.resultsTable.fnDraw();
+		}
+		else {
+			this.createUserProfileDatatables(userId);
+			
+			WPA.userProfileDialog = jQuery('#user-profile-dialog').dialog({
+				title: this.getProperty('user_profile_dialog_title'),
+				autoOpen: true,
+				modal: true,
+				width: jQuery(document).width()-100,
+				height: jQuery(window).height()-100,
+			})
+		}
+		WPA.getPersonalBests(userId);
+		WPA.Ajax.getUserProfile(userId, function(result) {
+			jQuery('#wpa-profile-name').html(result.name);
+			jQuery('#wpa-profile-fave-event').html(WPA.getEventCategoryDescription(result.faveEvent));
+			jQuery('#wpa-profile-age-class').html(WPA.getAgeCategoryDescription(result.ageCategory));
+			if(result.photo) {
+				jQuery('#wpaUserProfilePhoto').removeClass('wpa-profile-photo-default').css('background-image', 'url(' + result.photo + ')');
+			}
+			else {
+				jQuery('#wpaUserProfilePhoto').addClass('wpa-profile-photo-default')
+			}
+		})
+	},
+	
+	/**
+	 * Displays the event results dialog
+	 */
+	displayEventResultsDialog: function(eventId) {
+		this.closeDialogs();
+
+		if(WPA.eventResultsDialog) {
+			WPA.eventResultsDialog.dialog("open");
+		}
+		else {
+			this.createEventResultsDatatables();
+			
+			WPA.eventResultsDialog = jQuery('#event-results-dialog').dialog({
+				title: this.getProperty('event_results_dialog_title'),
+				autoOpen: true,
+				modal: true,
+				width: jQuery(document).width()-400,
+				height: jQuery(window).height()-100,
+			})
+		}
+		
+		WPA.Ajax.getEventInfo(eventId, function(result) {
+			jQuery('#eventInfoName').html(result.name + ', ' + result.location);
+			jQuery('#eventInfoDate').html(result.date);
+			jQuery('#eventInfoDetail').html(WPA.getEventSubTypeDescription(result.sub_type_id) + ' ' + WPA.getEventCategoryDescription(result.event_cat_id));
+		})
+		
+		// load the events
+		WPA.Ajax.getEventResults(eventId, function(result) {
+			WPA.eventResultsTable.fnClearTable();
+			WPA.eventResultsTable.fnAddData(result);
+		});
+	},
+	
+	/**
+	 * Loads personal bests
+	 */
+	getPersonalBests: function(userId) {
+		WPA.Ajax.getPersonalBests(function(result) {
+			WPA.pbTable.fnClearTable();
+			WPA.pbTable.fnAddData(result);
+		}, userId);
+	},
+	
+	/**
+	 * Creates the event results datatables
+	 */
+	createEventResultsDatatables: function() {
+
+		WPA.eventResultsTable = jQuery('#event-results-table').dataTable(WPA.createTableConfig({
+			//"sDom": 'rt',
+			"bPaginate": false,
+			"aaSorting": [[ 2, "asc" ]],
+			"aoColumns": [{ 
+				"mData": "time_format",
+				"bVisible": false
+			},{ 
+				"mData": "athlete_name",
+				"mRender" : WPA.renderProfileLinkColumn,
+				"sClass": "datatable-right"
+			},{ 
+				"mData": "time",
+				"sClass": "datatable-bold",
+				"mRender": WPA.renderTimeColumn
+			},{
+				"mData": "age_category",
+				"mRender" : WPA.renderAgeCategoryColumn
+			},{ 
+				"mData": "position",
+				"mRender": WPA.renderPositionColumn
+			},{
+				"mData": "garmin_id",
+				"sWidth": "16px",
+				"mRender": WPA.renderGarminColumn,
+				"bSortable": false
+			}]
+		}));
+	},
+	
+	/**
+	 * Creates the user profile datatables
+	 */
+	createUserProfileDatatables: function(userId) {
+
+		// Results table
+		WPA.resultsTable = jQuery('#results-table').dataTable(WPA.createTableConfig({
+			"bProcessing": true,
+			"bServerSide": true,
+			"sAjaxSource": WPA.Ajax.url,
+			"sServerMethod": "POST",
+			"fnServerParams": function ( aoData ) {
+			    aoData.push( 
+			    	{name : 'action', value : 'wpa_get_results' },
+			    	{name : 'security', value : WPA.Ajax.nonce },
+			    	{name: 'user_id', value: WPA.currentUserProfileId }
+			    );
+			},
+			"aaSorting": [[ 1, "desc" ]],
+			"aoColumns": [{
+				"mData": "time_format",
+				"bVisible": false
+			},{
+				"mData": "event_date"
+			},{
+				"mData": "event_name",
+				"mRender" : WPA.renderEventLinkColumn
+			},{
+				"mData": "event_location"
+			},{
+				"mData": "event_sub_type_id",
+				"mRender" : WPA.renderEventTypeColumn
+			},{
+				"mData": "category" 
+			},{
+				"mData": "age_category",
+				"mRender" : WPA.renderAgeCategoryColumn
+			},{
+				"mData": "time",
+				"mRender": WPA.renderTimeColumn
+			},{
+				"mData": "position",
+				"sWidth": "20px",
+				"mRender": WPA.renderPositionColumn
+			},{
+				"mData": "garmin_id",
+				"sWidth": "16px",
+				"mRender": WPA.renderGarminColumn,
+				"bSortable": false
+			}]
+		}));
+		
+		// Personal bests table
+		WPA.pbTable = jQuery('#personal-bests-table').dataTable(WPA.createTableConfig({
+			"sDom": 'rt',
+			"bPaginate": false,
+			"aaSorting": [[ 2, "asc" ]],
+			"aoColumns": [{ 
+				"mData": "time_format",
+				"bVisible": false
+			},{ 
+				"mData": "user_id",
+				"bVisible": false
+			},{
+				"mData": "event_cat_id",
+				"bVisible": false
+			},{ 
+				"mData": "category",
+				"sClass": "datatable-bold-right-gray"
+			},{ 
+				"mData": "time",
+				"sClass": "datatable-bold",
+				"mRender": WPA.renderTimeColumn
+			},{ 
+				"mData": "event_name"
+			},{
+				"mData": "event_location"
+			},{
+				"mData": "event_sub_type_id",
+				"mRender" : WPA.renderEventTypeColumn
+			},{
+				"mData": "age_category",
+				"mRender" : WPA.renderAgeCategoryColumn
+			},{ 
+				"mData": "event_date"
+			},{
+				"mData": "garmin_id",
+				"sWidth": "16px",
+				"mRender": WPA.renderGarminColumn,
+				"bSortable": false
+			}]
+		}));
+	},
+	
+	/**
+	 * closes any open dialogs
+	 */
+	closeDialogs: function() {
+		if(WPA.eventResultsDialog) {
+			WPA.eventResultsDialog.dialog("close");
+		}
+		if(WPA.userProfileDialog) {
+			WPA.userProfileDialog.dialog("close");
+		}
+	},
+	
 	/** DATATABLE COLUMN RENDERERS **/
 	renderTimeColumn: function(data, type, full) {
 		return WPA.displayEventTime(data, full['time_format']);
@@ -128,6 +401,29 @@ var WPA = {
 	renderDeleteEditResultColumn: function (data, type, full) {
 		return '<div class="datatable-icon delete" onclick="WPA.MyResults.deleteResult(' + data + ')" title="' + WPA.getProperty('delete_result_text') + '"></div>' +
 		'&nbsp;<div class="datatable-icon edit" onclick="WPA.MyResults.editResult(' + data + ')" title="' + WPA.getProperty('edit_result_text') + '"></div>';
+	},
+	
+	renderAgeCategoryColumn: function(data, type, full) {
+		return '<div class="datatable-center" title="' + WPA.getAgeCategoryDescription(data) + '">' + data + '</div>';
+	},
+	
+	renderEventTypeColumn: function(data, type, full) {
+		return WPA.getEventSubTypeDescription(data);
+	},
+	
+	renderProfileLinkColumn: function(data, type, full) {
+		return '<div class="wpa-link" onclick="WPA.displayUserProfileDialog(' + full['user_id'] + ')">' + data + '</div>';
+	},
+	
+	renderEventLinkColumn: function(data, type, full) {
+		return '<div class="wpa-link" onclick="WPA.displayEventResultsDialog(' + full['event_id'] + ')">' + data + '</div>';
+	},
+	
+	renderPositionColumn: function(data, type, full) {
+		if(parseInt(data) > 0) {
+			return data
+		}
+		return '-';
 	}
 };
 

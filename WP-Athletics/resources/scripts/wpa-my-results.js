@@ -103,10 +103,11 @@ WPA.MyResults = {
 	 */
 	setResultUpdateInfo: function(result) {
 		// load the event info
-		WPA.Ajax.getEventInfo(result.event_id, function() {
+		WPA.Ajax.getEventInfo(result.event_id, function(_result) {
+			WPA.MyResults.loadEventInfoCallback(_result);
 			var time = WPA.millisecondsToTime(result.time);
 			jQuery("#addResultId").val(result.id);
-			jQuery("#addResultAgeCategory").val(result.age_category);
+			jQuery('#addResultAgeCategory').combobox('setValue', result.age_category).combobox('removeCls', 'ui-state-error');
 			jQuery('#addResultPosition').val(result.position);
 			jQuery('#addResultGarminId').val(result.garmin_id);
 			jQuery('#addResultTimeHours').val(time.hours);
@@ -114,7 +115,16 @@ WPA.MyResults = {
 			jQuery('#addResultTimeSeconds').val(time.seconds);
 			jQuery('#addResultTimeMilliSeconds').val(time.milliseconds);
 		});
-
+	},
+	
+	/**
+	 * reads the profile photo url from the hidden input and populates as background image of the profile photo div
+	 */
+	loadProfilePhoto: function() {
+		var url =  jQuery('#user-image').val();
+		if(url) {
+			jQuery('#wpaProfilePhoto').removeClass('wpa-profile-photo-default').css('background-image', 'url(' + url + ')');
+		}
 	},
 	
 	/**
@@ -155,7 +165,7 @@ WPA.MyResults = {
 		WPA.Ajax.getPersonalBests(function(result) {
 			WPA.MyResults.pbTable.fnClearTable();
 			WPA.MyResults.pbTable.fnAddData(result);
-		}, true);
+		}, WPA.userId);
 	},
 
 	/** 
@@ -219,7 +229,7 @@ WPA.MyResults = {
 			"sServerMethod": "POST",
 			"fnServerParams": function ( aoData ) {
 			    aoData.push( 
-			    	{name : 'action', value : 'wpa_get_my_results' },
+			    	{name : 'action', value : 'wpa_get_results' },
 			    	{name : 'security', value : WPA.Ajax.nonce }
 			    );
 			},
@@ -235,28 +245,25 @@ WPA.MyResults = {
 			},{
 				"mData": "event_date"
 			},{
-				"mData": "event_name"
+				"mData": "event_name",
+				"mRender" : WPA.renderEventLinkColumn
 			},{
 				"mData": "event_location"
 			},{
 				"mData": "event_sub_type_id",
-				"mRender" : function(data) {
-					return WPA.eventTypes[data];
-				}
+				"mRender" : WPA.renderEventTypeColumn
 			},{
 				"mData": "category" 
+			},{
+				"mData": "age_category",
+				"mRender" : WPA.renderAgeCategoryColumn
 			},{
 				"mData": "time",
 				"mRender": WPA.renderTimeColumn
 			},{
 				"mData": "position",
 				"sWidth": "20px",
-				"mRender": function(data) {
-					if(parseInt(data) > 0) {
-						return data
-					}
-					return '-';
-				}
+				"mRender": WPA.renderPositionColumn
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",
@@ -292,14 +299,16 @@ WPA.MyResults = {
 				"sClass": "datatable-bold",
 				"mRender": WPA.renderTimeColumn
 			},{ 
-				"mData": "event_name"
+				"mData": "event_name",
+				"mRender" : WPA.renderEventLinkColumn
 			},{
 				"mData": "event_location"
 			},{
 				"mData": "event_sub_type_id",
-				"mRender" : function(data) {
-					return WPA.eventTypes[data];
-				}
+				"mRender" : WPA.renderEventTypeColumn
+			},{
+				"mData": "age_category",
+				"mRender" : WPA.renderAgeCategoryColumn
 			},{ 
 				"mData": "event_date"
 			},{

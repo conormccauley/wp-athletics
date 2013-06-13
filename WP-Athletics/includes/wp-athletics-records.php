@@ -8,8 +8,6 @@ if(!class_exists('WP_Athletics_Records')) {
 
 	class WP_Athletics_Records extends WPA_Base {
 
-		public $nonce = 'wpathleticsrecords';
-
 		/**
 		 * default constructor
 		 */
@@ -28,7 +26,7 @@ if(!class_exists('WP_Athletics_Records')) {
 			wp_enqueue_script( 'wpa-records' );
 
 			global $current_user;
-			$nonce = wp_create_nonce( $this->nonce );
+			$nonce = wp_create_nonce( WPA_NONCE );
 
 			// retrieve arrays for select elements
 			$age_cats = $this->get_age_categories();
@@ -37,25 +35,22 @@ if(!class_exists('WP_Athletics_Records')) {
 			?>
 				<script type='text/javascript'>
 					jQuery(document).ready(function() {
-						// load event types
-						WPA.eventTypes = {};
-						WPA.ageCats = {};
-						<?php
-						foreach ( $sub_types as $sub_type ) {
-						?>
-							WPA.eventTypes['<?php echo $sub_type['id']?>'] = '<?php echo $sub_type['description']?>'
-						<?php
-						}
-						?>
+
+						// set up tabs
+						jQuery('#results-tabs').tabs();
+
+						// tooltips on add results dialog
+						jQuery(document).tooltip({
+							track: true
+						});
 
 						// set up ajax and retrieve my results
-						WPA.Ajax.setup('<?php echo admin_url( 'admin-ajax.php' ); ?>', '<?php echo $nonce; ?>', function() {
+						WPA.Ajax.setup('<?php echo admin_url( 'admin-ajax.php' ); ?>', '<?php echo $nonce; ?>', '<?php echo $current_user->ID; ?>', function() {
 
 							// create tabs for each age category
 							<?php
 							foreach ( $age_cats as $age_cat ) {
 							?>
-								WPA.ageCats['<?php echo $age_cat['id']?>'] = '<?php echo $age_cat['description']?>'
 								jQuery('#tabs ul').append('<li category="<?php echo $age_cat['id']?>"><a href="#tab-<?php echo $age_cat['id']?>"><?php echo $age_cat['description']?></a></li>');
 								jQuery('#tabs').append('<div id="tab-<?php echo $age_cat['id']?>">' + WPA.Records.createTableHTML('<?php echo $age_cat['id']?>') + '</div>');
 								WPA.Records.createDataTable('<?php echo $age_cat['id']?>');
@@ -79,10 +74,12 @@ if(!class_exists('WP_Athletics_Records')) {
 				</script>
 
 				<!-- MY RESULTS TABS -->
-				<div id="tabs">
+				<div class="wpa-tabs" id="tabs">
 				  <ul>
 				  </ul>
 				</div>
+
+				<?php $this->create_common_dialogs(); ?>
 
 			<?php
 		}

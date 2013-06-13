@@ -7,10 +7,12 @@ WPA.Ajax = {
 	/**
 	 * sets up the object with the AJAX url and security nonce, also retrieves language properties
 	 */
-	setup: function(url, nonce, callbackFn) {
+	setup: function(url, nonce, userId, callbackFn) {
 		this.url = url;
+		WPA.userId = userId;
 		this.nonce = nonce;
 		this.getLanguageProperties(callbackFn);
+		this.loadAthleteData();
 	},
 	
 	/**
@@ -27,6 +29,59 @@ WPA.Ajax = {
 				console.log('Language properties:' + result);
 				WPA.Props = result;
 				callbackFn();
+			}
+		});
+	},
+	
+	/**
+	 * Gets user profile info
+	 */
+	getUserProfile: function(userId, callbackFn) {
+		jQuery.ajax({
+			type: "post",
+			url: WPA.Ajax.url,
+			data: {
+				action: 'wpa_get_user_profile',
+				user_id: userId
+			},
+			success: function(result){
+				callbackFn(result);
+			}
+		});
+	},
+	
+	/**
+	 * stores useful info such as age categories and event types
+	 */
+	loadAthleteData: function() {
+		jQuery.ajax({
+			type: "post",
+			url: WPA.Ajax.url,
+			data: {
+				action: 'wpa_load_athlete_data'
+			},
+			success: function(result){
+				WPA.globals.eventTypes = result.eventTypes;
+				WPA.globals.ageCategories = result.ageCategories;
+				WPA.globals.eventCategories = result.eventCategories;
+			}
+		});
+	},
+	
+	/**
+	 * Saves profile photo as a meta option
+	 */
+	saveProfilePhoto: function(url) {
+		jQuery.ajax({
+			type: "post",
+			url: WPA.Ajax.url,
+			data: {
+				action: 'wpa_save_profile_photo',
+				url: url,
+				security:  WPA.Ajax.nonce
+			},
+			success: function(result){
+				WPA.MyResults.loadProfilePhoto();
 			}
 		});
 	},
@@ -118,12 +173,22 @@ WPA.Ajax = {
 				action: 'wpa_get_event',
 				eventId: id
 			},
-			success: function(result) {
-				WPA.MyResults.loadEventInfoCallback(result);
-				if(callbackFn) {
-					callbackFn();
-				}
-			}
+			success: callbackFn
+		});
+	},
+	
+	/**
+	 * Retrieves results for a particular event
+	 */
+	getEventResults: function(id, callbackFn) {
+		jQuery.ajax({
+			type: "post",
+			url: WPA.Ajax.url,
+			data: {
+				action: 'wpa_get_event_results',
+				eventId: id
+			},
+			success: callbackFn
 		});
 	},
 	
@@ -131,17 +196,49 @@ WPA.Ajax = {
 	 * Retrieves a list of personal bests. If age category or event category ID specified, will be filtered.
 	 * If individual is true, will return for logged in user, otherwise, all club records
 	 */
-	getPersonalBests: function(callbackFn, individual, ageCategory, eventCategoryId) {
+	getPersonalBests: function(callbackFn, userId, ageCategory, eventCategoryId) {
 		jQuery.ajax({
 			type: "post",
 			url: WPA.Ajax.url,
 			data: {
 				action: 'wpa_get_personal_bests',
-				individual: individual,
+				userId: userId,
 				ageCategory: ageCategory,
 				eventCategoryId: eventCategoryId
 			},
 			success: callbackFn
+		});
+	},
+	
+	/**
+	 * Launches the dialog to upload media and also sets a filter beforehand ensuring users will only see their own files
+	 */
+	launchMediaUploader: function() {
+		jQuery.ajax({
+			type: "post",
+			url: WPA.Ajax.url,
+			data: {
+				action: 'wpa_add_media_query_filter',
+			},
+			success: function() {
+				WPA.customUploader.open();
+			}
+		});
+	},
+	
+	/**
+	 * Launches the dialog to upload media and also sets a filter beforehand ensuring users will only see their own files
+	 */
+	closeMediaUploader: function() {
+		jQuery.ajax({
+			type: "post",
+			url: WPA.Ajax.url,
+			data: {
+				action: 'wpa_remove_media_query_filter',
+			},
+			success: function() {
+				
+			}
 		});
 	}
 		

@@ -56,6 +56,9 @@ if(!class_exists('WP_Athletics')) {
 			if (!defined('WPA_DB_VERSION') )
 				define('WPA_DB_VERSION', '1.0.0');
 
+			if (!defined('WPA_NONCE') )
+				define('WPA_NONCE', 'wpaathletics2013');
+
 			// store plugin version number
 			add_option('wp-athletics_version', WPA_VERSION_NUM );
 

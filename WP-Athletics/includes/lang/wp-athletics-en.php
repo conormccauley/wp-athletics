@@ -13,6 +13,7 @@ return array(
 	'column_position' => '#',
 	'column_garmin' => 'Garmin',
 	'column_athlete_name' => 'Name',
+	'column_age_category' => 'Class',
 
 	// my results - profile
 	'my_profile_display_name_label' => 'Athlete Name',
@@ -22,10 +23,22 @@ return array(
 	'my_profile_fave_event' => 'Favourite Event',
 	'my_profile_results_recorded' => 'Results Recorded',
 	'my_profile_select_sub_type' => 'Select Type',
+	'my_profile_image_upload_text' => 'Click to upload new profile photo',
+	'my_profile_select_profile_image' => 'Select as profile photo',
+
+	// user profile dialog
+	'user_profile_dialog_title' => 'User Profile',
+
+	// event results dialog
+	'event_results_dialog_title' => 'Event Results',
 
 	// my results - tabs
 	'my_results_main_tab' => 'My Results',
 	'my_results_personal_bests_tab' => 'My Personal Bests',
+
+	// results - tabs
+	'results_main_tab' => 'Results',
+	'results_personal_bests_tab' => 'Personal Bests',
 
 	// my_results - add result
 	'add_result_event_name' => 'Event Name',

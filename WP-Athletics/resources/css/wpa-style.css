@@ -6,23 +6,33 @@
 
 /* My Results Profile */
 
-#wpaProfile {
+.wpa-profile {
 	font-size: 12px;
 	height: 130px;
 }
 
-#wpaProfileInfo {
-	width: 350px;
+.wpa-profile-info {
+	width: 400px;
 	float: left;
 	padding: 5px;
 }
 
-#wpaProfilePhoto {
+.wpa-profile-photo {
 	height: 120px;
 	width: 120px;
 	float: left;
 	border: 1px solid gray;
-	background: url('http://images.instagram.com/profiles/profile_30931206_75sq_1354567755.jpg') no-repeat;
+	background-repeat: no-repeat;
+	background-size: 120px 120px;
+	cursor: pointer;
+}
+
+.wpa-profile-photo-default {
+	background-image: url(../images/profile-blank.jpg) !important;	
+}
+
+#wpaProfilePhoto:hover {
+	border: 1px solid blue;
 }
 
 #wpaProfileAddResult {
@@ -45,9 +55,15 @@
 	margin: 0px 5px 0px 0px;
 }
 
+.wpa-link {
+	text-decoration: underline;
+	cursor: pointer;
+}
+
 .wpa-profile-field input {
 	padding: 2px;
 	width: 150px;
+	background: none;
 }
 
 .wpa-add-result-field {
@@ -69,6 +85,39 @@
 
 .wpa-add-result-field input {
 	padding: 4px;
+}
+
+.wpa-event-info {
+	margin: 5px 0px 5px 0px;
+}
+
+.wpa-event-info div {
+	line-height: 1.5em;
+}
+
+.wpa-event-info div span {
+	display: inline-block;
+	margin-right: 6px;
+}
+
+#eventInfoName {
+	font-size: 14px;
+	font-weight: bold;
+	color: #787878;
+}
+
+#eventInfoDate {
+	font-size: 14px;
+	color: #a3a3a3;
+}
+
+#eventInfoDetail {
+	font-size: 14px;
+	color: #afafaf;
+}
+
+#user-profile-dialog label {
+	font-weight: bold;
 }
 
 .wpa-add-result-field select {
@@ -110,7 +159,7 @@
 	padding: 0px !important;
 }
 
-#tabs {
+.wpa-tabs {
 	border: none !important;
 }
 
@@ -131,12 +180,27 @@
 	color: gray;
 }
 
+.datatable-right {
+	text-align: right;
+}
+
+.datatable-center {
+	text-align: center;
+}
+
 .datatable-bold {
 	font-weight:bold; 
 }
 
-table.display tr td {
+table.display tr td, table.display th {
 	white-space: nowrap;
+	height: 22px;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+table.display th {
+    text-align: center;
 }
 
 table.display {

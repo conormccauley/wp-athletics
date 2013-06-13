@@ -15,14 +15,16 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		 */
 		public function __construct($db) {
 			parent::__construct($db);
-			add_action( 'wp_ajax_wpa_get_my_results', array ( $this, 'get_my_results') );
 			add_action( 'wp_ajax_wpa_event_autocomplete', array ( $this, 'event_autocomplete') );
-			add_action( 'wp_ajax_wpa_get_personal_bests', array ( $this, 'get_personal_bests') );
 			add_action( 'wp_ajax_wpa_get_event', array ( $this, 'get_event') );
 			add_action( 'wp_ajax_wpa_update_result', array ( $this, 'update_result') );
 			add_action( 'wp_ajax_wpa_delete_result', array ( $this, 'delete_result') );
 			add_action( 'wp_ajax_wpa_get_result_info', array ( $this, 'get_result_info') );
 			add_action( 'wp_ajax_wpa_save_profile_data', array ( $this, 'save_profile_data') );
+			add_action( 'wp_ajax_wpa_save_profile_photo', array ( $this, 'save_profile_photo') );
+			add_action( 'wp_ajax_wpa_add_media_query_filter', array ( $this, 'add_media_query_filter') );
+			add_action( 'wp_ajax_wpa_remove_media_query_filter', array ( $this, 'remove_media_query_filter') );
+			add_filter( 'posts_where', array( $this, 'custom_query_attachments' ) );
 		}
 
 		/**
@@ -36,6 +38,39 @@ if(!class_exists('WP_Athletics_My_Results')) {
 
 			// return as json
 			wp_send_json($results);
+			die();
+		}
+
+		/**
+		 * [AJAX] Adds a where filter for the media uploader to ensure only author images are displayed
+		 */
+		public function add_media_query_filter() {
+			wpa_log('ADDING MEDIA Q FILTER');
+			add_filter( 'posts_where', 'custom_query_attachments');
+		}
+
+		/**
+		 * [AJAX] Removes a where filter for the media uploader to ensure only author images are displayed
+		 */
+		public function remove_media_query_filter() {
+			wpa_log('REMOVING MEDIA Q FILTER');
+			remove_filter( 'posts_where', 'custom_query_attachments');
+		}
+
+		/**
+		 * [AJAX] Saves new user profile photo in user metadata table
+		 */
+		public function save_profile_photo() {
+			if( $this->is_valid_ajax( $this->nonce ) ) {
+				global $current_user;
+
+				update_user_meta( $current_user->ID, 'wp-athletics_profile_photo', $_POST['url'] );
+
+				$result = array('success'=>true);
+
+				// return as json
+				wp_send_json($result);
+			}
 			die();
 		}
 
@@ -117,22 +152,6 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		}
 
 		/**
-		 * [AJAX] Retrieves list of results for user
-		 */
-		public function get_my_results() {
-			if( $this->is_valid_ajax( $this->nonce ) ) {
-				global $current_user;
-
-				// perform the query
-				$results = $this->wpa_db->get_results( $current_user->ID, $_POST );
-
-				// return as json
-				wp_send_json($results);
-			}
-			die();
-		}
-
-		/**
 		 * [AJAX] Saves provided profile data to the user meta data table
 		 */
 		public function save_profile_data() {
@@ -164,6 +183,15 @@ if(!class_exists('WP_Athletics_My_Results')) {
 			die();
 		}
 
+		public function custom_query_attachments($where) {
+			global $current_user;
+			if(strpos($where, "wp_posts.post_type = 'attachment'")) {
+				$where = ' AND wp_posts.post_author = ' . $current_user->ID . $where;
+			}
+			wpa_log('WHERE IS: ' . $where);
+			return $where;
+		}
+
 		/**
 		 * [AJAX] returns number of results recorded for current user
 		 */
@@ -178,6 +206,11 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		public function my_results() {
 			if ( is_user_logged_in() ) {
 				$this->enqueue_scripts_and_styles();
+
+				// add image upload capabilities for subscriber role (default role for registered members);
+				$subscriber = get_role('subscriber');
+				$subscriber->add_cap('upload_files');
+				$subscriber->add_cap('edit_posts');
 
 				// custom script
 				wp_register_script( 'wpa-my-results', WPA_PLUGIN_URL . '/resources/scripts/wpa-my-results.js' );
@@ -198,27 +231,14 @@ if(!class_exists('WP_Athletics_My_Results')) {
 			?>
 				<script type='text/javascript'>
 					jQuery(document).ready(function() {
-						// load event types
-						WPA.eventTypes = {};
-						<?php
-						foreach ( $sub_types as $sub_type ) {
-						?>
-							WPA.eventTypes['<?php echo $sub_type['id']?>'] = '<?php echo $sub_type['description']?>'
-						<?php
-						}
-						?>
 
 						// set up ajax and retrieve my results
-						WPA.Ajax.setup('<?php echo admin_url( 'admin-ajax.php' ); ?>', '<?php echo $nonce; ?>', function() {
+						WPA.Ajax.setup('<?php echo admin_url( 'admin-ajax.php' ); ?>', '<?php echo $nonce; ?>', '<?php echo $current_user->ID; ?>',  function() {
 
 							WPA.MyResults.createMyResultsTables();
 
 							// set up tabs
-							jQuery('#tabs').tabs({
-								activate: function( event, ui ) {
-									console.log('tab change: ' + ui);
-								}
-							});
+							jQuery('.wpa-tabs').tabs();
 
 							// bind blur event to display name select field
 							// detect enter key press on the display name field
@@ -278,7 +298,9 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							});
 
 							// tooltips on add results dialog
-							jQuery(document).tooltip();
+							jQuery(document).tooltip({
+								track: true
+							});
 
 							// set date picker element
 							jQuery('#addResultDate').datepicker({
@@ -299,7 +321,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 								source: WPA.Ajax.url + '?action=wpa_event_autocomplete',
 								minLength: 2,
 								select: function( event, ui ) {
-									WPA.Ajax.getEventInfo(ui.item.value);
+									WPA.Ajax.getEventInfo(ui.item.value, WPA.MyResults.loadEventInfoCallback);
 								}
 						    }).focus(function(){
 						        this.select();
@@ -315,7 +337,12 @@ if(!class_exists('WP_Athletics_My_Results')) {
 						    });
 
 							// add result button
-							jQuery('#wpaProfileAddResult').click(function() {
+							jQuery('#wpaProfileAddResult button').button({
+								icons: {
+					              primary: 'ui-icon-circle-plus'
+					            }
+							}).click(function() {
+								WPA.MyResults.resetAddResultForm();
 								jQuery("#addResultId").val('');
 								jQuery("#addResultDialog").dialog("option", "title", WPA.getProperty('add_result_title'));
 								jQuery("#addResultDialog").dialog("open");
@@ -367,25 +394,60 @@ if(!class_exists('WP_Athletics_My_Results')) {
 									jQuery(this).combobox('removeCls', 'ui-state-error');
 								}
 							});
+
+							// set profile photo
+							WPA.MyResults.loadProfilePhoto();
+
+							WPA.customUploader = null;
+
+							// upload photo handler, uses native WP media uploader
+							jQuery('#wpaProfilePhoto').click(function(e) {
+						        e.preventDefault();
+
+						        // if the uploader object has already been created, reopen the dialog
+						        if (WPA.customUploader) {
+						        	WPA.Ajax.launchMediaUploader();
+						            return;
+						        }
+
+						        // extend the wp.media object
+						        WPA.customUploader = wp.media.frames.file_frame = wp.media({
+						            title: WPA.getProperty('my_profile_select_profile_image'),
+						            button: {
+						                text: WPA.getProperty('my_profile_select_profile_image')
+						            },
+						            multiple: false
+						        });
+
+						        // when a photo is selected, grab the URL and set it as the text field's value, then save to user metadata
+						        WPA.customUploader.on('select', function() {
+						            attachment = WPA.customUploader.state().get('selection').first().toJSON();
+						            jQuery('#user-image').val(attachment.url);
+						            WPA.Ajax.saveProfilePhoto(attachment.url);
+						            WPA.Ajax.closeMediaUploader();
+						        });
+
+						        // open the uploader dialog
+						        WPA.Ajax.launchMediaUploader();
+							});
 						});
 					});
 				</script>
 
 				<!-- ATHLETE PROFILE -->
-				<div id="wpaProfile">
+				<div class="wpa-profile">
 
 					<!-- ATHLETE PHOTO -->
-					<div id="wpaProfilePhoto">
-
-					</div>
+					<input id="user-image" type="hidden" value="<?php echo get_user_meta( $current_user->ID, 'wp-athletics_profile_photo', true );?>" />
+					<div class="wpa-profile-photo wpa-profile-photo-default" title="<?php echo $this->get_property('my_profile_image_upload_text'); ?>" id="wpaProfilePhoto"></div>
 
 					<!-- ATHLETE INFO -->
-					<div id="wpaProfileInfo">
+					<div class="wpa-profile-info">
 
 						<!-- DISPLAY NAME -->
 						<div class="wpa-profile-field">
 							<label><?php echo $this->get_property('my_profile_display_name_label'); ?>:</label>
-							<input type="text" id="myProfileDisplayName" size="20" maxlength="30" value="<?php echo $user_display_name; ?>"/>
+							<input type="text" id="myProfileDisplayName" size="20" maxlength="30" class="ui-widget ui-widget-content ui-state-default" value="<?php echo $user_display_name; ?>"/>
 						</div>
 
 						<!-- AGE CLASS -->
@@ -434,7 +496,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 				</div>
 
 				<!-- MY RESULTS TABS -->
-				<div id="tabs">
+				<div class="wpa-tabs" id="tabs">
 				  <ul>
 				    <li><a href="#tabs-my-results"><?php echo $this->get_property('my_results_main_tab') ?></a></li>
 				    <li><a href="#tabs-my-personal-bests"><?php echo $this->get_property('my_results_personal_bests_tab') ?></a></li>
@@ -450,6 +512,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 								<th><?php echo $this->get_property('column_event_location') ?></th>
 								<th><?php echo $this->get_property('column_event_type') ?></th>
 								<th><?php echo $this->get_property('column_category') ?></th>
+								<th><?php echo $this->get_property('column_age_category') ?></th>
 								<th><?php echo $this->get_property('column_time') ?></th>
 								<th><?php echo $this->get_property('column_position') ?></th>
 								<th></th>
@@ -470,6 +533,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 								<th><?php echo $this->get_property('column_event_name') ?></th>
 								<th><?php echo $this->get_property('column_event_location') ?></th>
 								<th><?php echo $this->get_property('column_event_type') ?></th>
+								<th><?php echo $this->get_property('column_age_category') ?></th>
 								<th><?php echo $this->get_property('column_event_date') ?></th>
 								<th></th>
 							</tr>
@@ -571,6 +635,8 @@ if(!class_exists('WP_Athletics_My_Results')) {
   						<?php echo $this->get_property('confirm_result_delete'); ?>
   					</p>
 				</div>
+
+				<?php $this->create_common_dialogs(); ?>
 
 			<?php
 			} else {

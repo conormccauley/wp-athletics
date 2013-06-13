@@ -29,8 +29,44 @@ if(!class_exists('WPA_Base')) {
 		public function __construct($db) {
 			wpa_log(get_class($this) . ' class instantiated successfully');
 			$this->wpa_db = $db;
+
+			// add actions
 			add_action( 'wp_ajax_wpa_get_language_props', array ( $this, 'get_language_props') );
 			add_action( 'wp_ajax_wpa_get_personal_bests', array ( $this, 'get_personal_bests') );
+			add_action( 'wp_ajax_wpa_load_athlete_data', array ( $this, 'load_athlete_data') );
+			add_action( 'wp_ajax_wpa_get_results', array ( $this, 'get_results') );
+			add_action( 'wp_ajax_wpa_get_event_results', array ( $this, 'get_event_results') );
+			add_action( 'wp_ajax_wpa_get_user_profile', array ( $this, 'get_user_profile') );
+		}
+
+		/**
+		 * retrieves useful info such as event types and age categories
+		 */
+		public function load_athlete_data() {
+			$age_cats = $this->get_age_categories();
+			$sub_types = $this->get_event_sub_type();
+			$event_cats = $this->wpa_db->get_event_categories();
+
+			wp_send_json(array(
+				'ageCategories' => $age_cats,
+				'eventTypes' => $sub_types,
+				'eventCategories' => $event_cats
+			));
+		}
+
+		/**
+		 * Returns info to display for a user profile
+		 */
+		public function get_user_profile() {
+			$userId = (integer) $_POST['user_id'];
+			$result = array(
+				'ageCategory' => get_user_meta( $userId, 'wp-athletics_age_category', true ),
+				'faveEvent' => get_user_meta( $userId, 'wp-athletics_fave_event_category', true ),
+				'name' => get_user_meta( $userId, 'wp-athletics_name', true ),
+				'photo' => get_user_meta( $userId, 'wp-athletics_profile_photo', true )
+			);
+			wp_send_json($result);
+			die();
 		}
 
 		/**
@@ -43,6 +79,44 @@ if(!class_exists('WPA_Base')) {
 		}
 
 		/**
+		 * [AJAX] Retrieves list of results for a user
+		 */
+		public function get_results() {
+			global $current_user;
+			$userId;
+
+			if( isset( $_POST['user_id'] )) {
+				$userId = (integer) $_POST['user_id'];
+			}
+			else {
+				$userId = $current_user->ID;
+			}
+
+			// perform the query
+			$results = $this->wpa_db->get_results( $userId, $_POST );
+
+			// return as json
+			wp_send_json($results);
+			die();
+		}
+
+		/**
+		 * [AJAX] Retrieves list of results for a given event
+		 */
+		public function get_event_results() {
+			global $current_user;
+
+			$eventId = (integer) $_POST['eventId'];
+
+			// perform the query
+			$results = $this->wpa_db->get_event_results( $eventId );
+
+			// return as json
+			wp_send_json($results);
+			die();
+		}
+
+		/**
 		 * [AJAX] returns personal bests for current user
 		 */
 		public function get_personal_bests() {
@@ -50,10 +124,8 @@ if(!class_exists('WPA_Base')) {
 
 			$userId = null;
 
-			wpa_log('individual: ' . $_POST['individual']);
-
-			if( isset( $_POST['individual'] ) && $_POST['individual'] == 'true') {
-				$userId = $current_user->ID;
+			if( isset( $_POST['userId'] ) && $_POST['userId'] != '-1') {
+				$userId = $_POST['userId'];
 			}
 
 			// perform the query
@@ -81,7 +153,8 @@ if(!class_exists('WPA_Base')) {
 		/**
 		 * checks if the nonce value is valid for a wordpress AJAX request
 		 */
-		public function is_valid_ajax($nonce) {
+		public function is_valid_ajax( $nonce ) {
+
 			global $wpa_lang;
 			if(check_ajax_referer( $nonce, 'security', false ) ) {
 				return true;
@@ -171,6 +244,7 @@ if(!class_exists('WPA_Base')) {
 				wp_enqueue_script( 'jquery-ui-datepicker' );
 				wp_enqueue_script( 'wpa-functions' );
 				wp_enqueue_script( 'wpa-ajax' );
+				wp_enqueue_media();
 
 				// enqueue styles
 				wp_enqueue_style( 'datatables' );
@@ -182,6 +256,118 @@ if(!class_exists('WPA_Base')) {
 				wpa_log('enqueuing admin scripts');
 				wp_enqueue_script('jquery');
 			}
+		}
+
+		/**
+		 * Writes HTML to generate a dialogs for user profile and event results
+		 */
+		public function create_common_dialogs() {
+		?>
+			<!-- USER PROFILE DIALOG -->
+			<div style="display:none" id="user-profile-dialog">
+
+				<div class="wpa-profile">
+					<!-- ATHLETE INFO -->
+					<div class="wpa-profile-info">
+
+						<!-- ATHLETE PHOTO -->
+						<div class="wpa-profile-photo wpa-profile-photo-default" id="wpaUserProfilePhoto"></div>
+
+						<!-- DISPLAY NAME -->
+						<div class="wpa-profile-field">
+							<label><?php echo $this->get_property('my_profile_display_name_label'); ?>:</label>
+							<span id="wpa-profile-name"></span>
+						</div>
+
+						<!-- AGE CLASS -->
+						<div class="wpa-profile-field">
+							<label><?php echo $this->get_property('my_profile_age_class'); ?>:</label>
+							<span id="wpa-profile-age-class"></span>
+						</div>
+
+						<!-- FAVOURITE EVENT -->
+						<div class="wpa-profile-field">
+							<label><?php echo $this->get_property('my_profile_fave_event'); ?>:</label>
+							<span id="wpa-profile-fave-event"></span>
+						</div>
+					</div>
+					<br style="clear:both"/>
+				</div>
+
+				<!-- RESULTS TABS -->
+				<div class="wpa-tabs" id="results-tabs">
+				  <ul>
+				    <li><a href="#tabs-results"><?php echo $this->get_property('results_main_tab') ?></a></li>
+				    <li><a href="#tabs-personal-bests"><?php echo $this->get_property('results_personal_bests_tab') ?></a></li>
+				  </ul>
+				  <div id="tabs-results">
+					<table cellpadding="0" cellspacing="0" border="0" class="display ui-state-default" style="border-bottom:none" id="results-table" width="100%">
+						<thead>
+							<tr>
+								<th></th>
+								<th><?php echo $this->get_property('column_event_date') ?></th>
+								<th><?php echo $this->get_property('column_event_name') ?></th>
+								<th><?php echo $this->get_property('column_event_location') ?></th>
+								<th><?php echo $this->get_property('column_event_type') ?></th>
+								<th><?php echo $this->get_property('column_category') ?></th>
+								<th><?php echo $this->get_property('column_age_category') ?></th>
+								<th><?php echo $this->get_property('column_time') ?></th>
+								<th><?php echo $this->get_property('column_position') ?></th>
+								<th></th>
+							</tr>
+						</thead>
+					</table>
+				  </div>
+				  <div id="tabs-personal-bests">
+					<table cellpadding="0" cellspacing="0" border="0" class="display ui-state-default" id="personal-bests-table" width="100%">
+						<thead>
+							<tr>
+								<th></th>
+								<th></th>
+								<th></th>
+								<th><?php echo $this->get_property('column_category') ?></th>
+								<th><?php echo $this->get_property('column_time') ?></th>
+								<th><?php echo $this->get_property('column_event_name') ?></th>
+								<th><?php echo $this->get_property('column_event_location') ?></th>
+								<th><?php echo $this->get_property('column_event_type') ?></th>
+								<th><?php echo $this->get_property('column_age_category') ?></th>
+								<th><?php echo $this->get_property('column_event_date') ?></th>
+								<th></th>
+							</tr>
+						</thead>
+					</table>
+				  </div>
+				</div>
+			</div>
+
+			<!-- EVENT RESULTS DIALOG -->
+			<div style="display:none" id="event-results-dialog">
+
+			  <div class="wpa-event-info">
+				<div class="wpa-event-info-title">
+					<span id="eventInfoName"></span>
+					<span id="eventInfoDate"></span>
+					<span id="eventInfoDetail"></span>
+				</div>
+			  </div>
+
+			  <div id="event-results">
+				<table cellpadding="0" cellspacing="0" border="0" class="display ui-state-default" style="border-bottom:none" id="event-results-table" width="100%">
+					<thead>
+						<tr>
+							<th></th>
+							<th><?php echo $this->get_property('column_athlete_name') ?></th>
+							<th><?php echo $this->get_property('column_time') ?></th>
+							<th><?php echo $this->get_property('column_age_category') ?></th>
+							<th><?php echo $this->get_property('column_position') ?></th>
+							<th></th>
+						</tr>
+					</thead>
+				</table>
+			  </div>
+
+			</div>
+		<?php
 		}
 	}
 }

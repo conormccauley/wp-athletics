@@ -34,7 +34,7 @@ WPA.Records = {
 		WPA.Ajax.getPersonalBests(function(result) {
 			WPA.Records.tables[ageCategory].fnClearTable();
 			WPA.Records.tables[ageCategory].fnAddData(result);
-		}, false, ageCategory );
+		}, -1, ageCategory );
 	},
 	
 	/**
@@ -56,20 +56,19 @@ WPA.Records = {
 				"sClass": "datatable-bold-right-gray"
 			},{
 				"mData": "athlete_name",
-				"sClass": "datatable-bold"
+				"mRender" : WPA.renderProfileLinkColumn
 			},{
 				"mData": "time",
 				"mRender": WPA.renderTimeColumn,
 				"sClass": "datatable-bold"
 			},{ 
-				"mData": "event_name"
+				"mData": "event_name",
+				"mRender" : WPA.renderEventLinkColumn
 			},{
 				"mData": "event_location"
 			},{
 				"mData": "event_sub_type_id",
-				"mRender" : function(data) {
-					return WPA.eventTypes[data];
-				}
+				"mRender" : WPA.renderEventTypeColumn
 			},{ 
 				"mData": "event_date"
 			},{

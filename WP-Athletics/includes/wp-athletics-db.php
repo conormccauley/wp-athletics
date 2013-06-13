@@ -113,13 +113,31 @@ if(!class_exists('WP_Athletics_DB')) {
 		}
 
 		/**
+		 * Returns a list of results for a given event ID
+		 * @param $event_id the event ID
+		 */
+		public function get_event_results($event_id) {
+			global $wpdb;
+
+			$results = $wpdb->get_results(
+					"
+					SELECT r.id, r.user_id, r.time, r.age_category, r.garmin_id, r.position, ec.time_format,
+					(SELECT meta_value FROM wp_usermeta WHERE meta_key = 'wp-athletics_name' AND user_id = r.user_id) as athlete_name
+					FROM $this->RESULT_TABLE r
+					LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
+					LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
+					WHERE r.event_id = $event_id
+					"
+			);
+			return $results;
+		}
+
+		/**
 		 * Returns a list of results for the provided criteria
 		 * @param $user_id the user ID
 		 */
 		public function get_results($user_id, $request) {
 			global $wpdb;
-
-			wpa_log('getting event results, max is ' . $request['iDisplayLength']);
 
 			$sEcho =  (int) $request['sEcho'];
 			$limit =  (int) $request['iDisplayLength'];
@@ -127,11 +145,9 @@ if(!class_exists('WP_Athletics_DB')) {
 			$sortCol = $this->translateResultSortColumn( $request['mDataProp_' . $request['iSortCol_0']] );
 			$sortDir = $request['sSortDir_0'];
 
-			wpa_log('sort by ' . $sortCol . ' direction is ' . $sortDir);
-
 			$results = $wpdb->get_results(
 					"
-					SELECT r.id, r.time, r.garmin_id, r.position, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
+					SELECT r.id, r.time, r.age_category, r.garmin_id, r.position, e.id as event_id, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
 					date_format(e.date,'" . WPA_DATE_FORMAT . "') as event_date, ec.name as category, ec.time_format
 					FROM $this->RESULT_TABLE r
 					LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
@@ -146,24 +162,6 @@ if(!class_exists('WP_Athletics_DB')) {
 				'iTotalDisplayRecords' => $this->get_result_count( $user_id, $request ),
 				'aaData' => $results
 			);
-		}
-
-		/**
-		 * Checks if an alternative sort column should be used
-		 */
-		public function translateResultSortColumn( $column)  {
-			if( $column == 'event_date' ) {
-				return 'e.date';
-			}
-			return $column;
-		}
-
-		/**
-		 * counts number of results available for a given user
-		 */
-		public function get_result_count($user_id, $request) {
-			global $wpdb;
-			return $wpdb->get_var( "SELECT COUNT(id) FROM $this->RESULT_TABLE WHERE user_id = $user_id" );
 		}
 
 		/**
@@ -207,15 +205,13 @@ if(!class_exists('WP_Athletics_DB')) {
 				$where = 'WHERE ' . $where;
 			}
 
-			wpa_log($where);
-
 			$results = $wpdb->get_results(
 					"
-					SELECT d.id, d.athlete_name, d.time, d.user_id, date_format(d.event_date,'" . WPA_DATE_FORMAT . "') as event_date, d.event_cat_id, d.event_name,
-					d.event_location, d.event_sub_type_id, ec.name as category, ec.time_format, d.garmin_id from $this->EVENT_CAT_TABLE ec
+					SELECT d.id, d.athlete_name, d.age_category, d.time, d.user_id, date_format(d.event_date,'" . WPA_DATE_FORMAT . "') as event_date, d.event_cat_id, d.event_name,
+					d.event_location, d.event_sub_type_id, d.event_id, ec.name as category, ec.time_format, d.garmin_id from $this->EVENT_CAT_TABLE ec
 					JOIN (
-					SELECT r.id, r.time AS time, r.garmin_id, r.user_id, ec1.id AS event_cat_id, e.name AS event_name, e.location as event_location,
-					e.sub_type_id AS event_sub_type_id, e.date AS event_date," . $selectDisplayName . " from $this->RESULT_TABLE r
+					SELECT r.id, r.age_category, r.time AS time, r.garmin_id, r.user_id, ec1.id AS event_cat_id, e.name AS event_name, e.location as event_location,
+					e.sub_type_id AS event_sub_type_id, e.id as event_id, e.date AS event_date," . $selectDisplayName . " from $this->RESULT_TABLE r
 					LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
 					LEFT JOIN $this->EVENT_CAT_TABLE ec1 ON e.event_cat_id = ec1.id " . $where . " ORDER BY $orderBy)
 					d ON d.event_cat_id = ec.id " . $groupByAndLimit
@@ -396,7 +392,24 @@ if(!class_exists('WP_Athletics_DB')) {
 			}
 
 			return false;
+		}
 
+		/**
+		 * Checks if an alternative sort column should be used
+		 */
+		public function translateResultSortColumn( $column)  {
+			if( $column == 'event_date' ) {
+				return 'e.date';
+			}
+			return $column;
+		}
+
+		/**
+		 * counts number of results available for a given user
+		 */
+		public function get_result_count($user_id, $request) {
+			global $wpdb;
+			return $wpdb->get_var( "SELECT COUNT(id) FROM $this->RESULT_TABLE WHERE user_id = $user_id" );
 		}
 
 		/**
