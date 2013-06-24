@@ -260,7 +260,7 @@ if(!class_exists('WP_Athletics_Demo')) {
 				if ( !$user_id and email_exists( $user_email ) == false ) {
 					$random_user = $this -> generate_random_user();
 					$user_id = wp_create_user( $user_name, $user_name, $user_email );
-					update_user_meta( $user_id, 'wp-athletics_name', $random_user['name'] );
+					$this->wpa_db->update_user_display_name( $user_id, $random_user['name'] );
 					array_push( $this->users, array(
 							'user_id' => $user_id,
 							'age_cat' => $random_user['age_category']

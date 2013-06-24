@@ -4,7 +4,7 @@ return array(
 	// my results - table
     'garmin_link_text' => 'Explore activity on Garmin Connect',
 	'column_event_date' => 'Date',
-	'column_event_type' => 'Type',
+	'column_event_type' => 'Terrain',
 	'column_event_name' => 'Event',
 	'column_athlete_name' => 'Athlete',
 	'column_event_location' => 'Location',
@@ -14,6 +14,7 @@ return array(
 	'column_garmin' => 'Garmin',
 	'column_athlete_name' => 'Name',
 	'column_age_category' => 'Class',
+	'column_top_10' => 'Top 10',
 
 	// my results - profile
 	'my_profile_display_name_label' => 'Athlete Name',
@@ -22,15 +23,29 @@ return array(
 	'my_profile_select_fave_event' => 'Select Event',
 	'my_profile_fave_event' => 'Favourite Event',
 	'my_profile_results_recorded' => 'Results Recorded',
-	'my_profile_select_sub_type' => 'Select Type',
+	'my_profile_select_sub_type' => 'Select Terrain',
 	'my_profile_image_upload_text' => 'Click to upload new profile photo',
 	'my_profile_select_profile_image' => 'Select as profile photo',
+	'my_profile_select_profile_image_title' => 'Select Profile Photo',
+
+	// filters
+	'filter_events_option_all' => 'All Events',
+	'filter_period_option_all' => 'All Time',
+	'filter_period_option_this_month' => 'This Month',
+	'filter_period_option_this_year' => 'This Year',
+	'filter_type_option_all' => 'All Terrains',
+	'filter_age_option_all' => 'All Age Classes',
+	'filter_event_name_input_text' => 'Filter event name',
+	'filter_event_name_cancel_text' => 'Remove event name filter',
 
 	// user profile dialog
 	'user_profile_dialog_title' => 'User Profile',
 
 	// event results dialog
 	'event_results_dialog_title' => 'Event Results',
+
+	// top 10 dialog
+	'top_10_dialog_title' => 'Top 10 [age] [category] Results ([period], [type])',
 
 	// my results - tabs
 	'my_results_main_tab' => 'My Results',
@@ -39,6 +54,11 @@ return array(
 	// results - tabs
 	'results_main_tab' => 'Results',
 	'results_personal_bests_tab' => 'Personal Bests',
+
+	// wpa search
+	'wpa_search_text' => 'Search athlete or event',
+	'wpa_search_category_event' => 'Events',
+	'wpa_search_category_athlete' => 'Athletes',
 
 	// my_results - add result
 	'add_result_event_name' => 'Event Name',
@@ -54,7 +74,7 @@ return array(
 	'add_result_garmin_link' => 'Garmin ID',
 	'add_result_select_event' => 'Select Event Category',
 	'add_result_optional' => 'optional',
-	'add_result_event_sub_type' => 'Type',
+	'add_result_event_sub_type' => 'Terrain',
 	'add_result_title' => 'Add Event Result',
 	'edit_result_title' => 'Edit Event Result',
 

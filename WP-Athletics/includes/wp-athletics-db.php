@@ -58,7 +58,7 @@ if(!class_exists('WP_Athletics_DB')) {
 				CREATE TABLE $this->EVENT_CAT_TABLE (
 				id mediumint(9) NOT NULL AUTO_INCREMENT,
 				name tinytext NOT NULL,
-				distance integer(10) NOT NULL,
+				distance float(10) NOT NULL,
 				unit varchar(10) NOT NULL,
 				default_data boolean DEFAULT false,
 				time_format varchar(6),
@@ -104,6 +104,7 @@ if(!class_exists('WP_Athletics_DB')) {
 			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '1 mile', 'distance' => 1, 'unit' => 'mile', 'default_data' => true, 'time_format' => 'm:s:ms' ) );
 			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '3000m', 'distance' => 3000, 'unit' => 'm', 'default_data' => true, 'time_format' => 'm:s:ms' ) );
 			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '5k', 'distance' => 5, 'unit' => 'km', 'default_data' => true, 'time_format' => 'm:s' ) );
+			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '4 miles', 'distance' => 4, 'unit' => 'mile', 'default_data' => true, 'time_format' => 'h:m:s' ) );
 			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '5 miles', 'distance' => 5, 'unit' => 'mile', 'default_data' => true, 'time_format' => 'h:m:s' ) );
 			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '10k', 'distance' => 10, 'unit' => 'km', 'default_data' => true, 'time_format' => 'h:m:s' ) );
 			$wpdb->insert( $this->EVENT_CAT_TABLE, array( 'name' => '10 miles', 'distance' => 10, 'unit' => 'mile', 'default_data' => true, 'time_format' => 'h:m:s' ) );
@@ -119,17 +120,36 @@ if(!class_exists('WP_Athletics_DB')) {
 		public function get_event_results($event_id) {
 			global $wpdb;
 
+			$wpdb->query('SET @rank=0;');
+
 			$results = $wpdb->get_results(
 					"
-					SELECT r.id, r.user_id, r.time, r.age_category, r.garmin_id, r.position, ec.time_format,
-					(SELECT meta_value FROM wp_usermeta WHERE meta_key = 'wp-athletics_name' AND user_id = r.user_id) as athlete_name
+					SELECT @rank:=@rank+1 AS rank, r.id, r.user_id, r.time, r.age_category, r.garmin_id, r.position, ec.time_format,
+					(SELECT display_name FROM wp_users WHERE id = r.user_id) as athlete_name
 					FROM $this->RESULT_TABLE r
 					LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
 					LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
-					WHERE r.event_id = $event_id
+					WHERE r.event_id = $event_id ORDER BY time asc
 					"
 			);
 			return $results;
+		}
+
+		/**
+		 * Gets the year of the oldest known result for a user. If no user ID is specified, will return oldest recorded record
+		 */
+		public function get_oldest_result_year( $user_id ) {
+			global $wpdb;
+
+			$where = $user_id ? 'WHERE r.user_id = ' . $user_id : '';
+
+			$year = $wpdb->get_var(
+				"SELECT date_format(e.date,'%Y') FROM $this->RESULT_TABLE r
+				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
+				$where ORDER BY e.date ASC LIMIT 1"
+			);
+
+			return $year;
 		}
 
 		/**
@@ -139,27 +159,92 @@ if(!class_exists('WP_Athletics_DB')) {
 		public function get_results($user_id, $request) {
 			global $wpdb;
 
+			$extraWhere = '';
 			$sEcho =  (int) $request['sEcho'];
 			$limit =  (int) $request['iDisplayLength'];
 			$offset = (int) $request['iDisplayStart'];
-			$sortCol = $this->translateResultSortColumn( $request['mDataProp_' . $request['iSortCol_0']] );
+			$numColumns = (int) $request['iColumns'];
+
+			$sortCol = $this->convertResultColumn( $request['mDataProp_' . $request['iSortCol_0']] );
 			$sortDir = $request['sSortDir_0'];
 
+			$searchCategory;
+			$searchSubType;
+			$searchAgeCat;
+			$searchPeriod;
+			$searchEvent;
+
+			// loops columns and set and process any filters that have been set
+			for($i = 0; $i < $numColumns; $i++) {
+				$param = $request['sSearch_' . $i];
+				wpa_log('sSearch_' . $i . ' is ' . $param);
+				if($param && $param != '') {
+					$dataProp = $request['mDataProp_' . $i];
+					wpa_log('mDataProp_' . $i . ' is ' . $dataProp);
+					if($dataProp == 'category') {
+						$searchCategory = $param;
+					}
+					else if($dataProp == 'event_sub_type_id') {
+						$searchSubType = $param;
+					}
+					else if($dataProp == 'age_category') {
+						$searchAgeCat = $param;
+					}
+					else if($dataProp == 'event_date') {
+						$searchPeriod = $param;
+					}
+					else if($dataProp == 'event_name') {
+						$searchEvent = $param;
+					}
+				}
+			}
+
+			// filters
+			if(isset($searchCategory) && $searchCategory != 'all') {
+				$extraWhere .= ' AND e.event_cat_id = ' . $searchCategory;
+			}
+
+			if(isset($searchSubType) && $searchSubType != 'all') {
+				$extraWhere .= " AND e.sub_type_id = '" . $searchSubType . "'";
+			}
+
+			if(isset($searchAgeCat) && $searchAgeCat != 'all') {
+				$extraWhere .= " AND r.age_category = '" . $searchAgeCat . "'";
+			}
+
+			if(isset($searchPeriod) && $searchPeriod != 'all') {
+				$dateWhere = $this->convert_date( $searchPeriod, 'e.date' );
+				if( $dateWhere != '' ) {
+					$extraWhere .= ' AND ' . $dateWhere;
+				}
+			}
+
+			if(isset($searchEvent) && $searchEvent != '') {
+				$extraWhere .= " AND lower(e.name) like '%" . strtolower($searchEvent) . "%'";
+			}
+
+			$result_display_count = $wpdb->get_var(					"
+				SELECT count(r.id) FROM $this->RESULT_TABLE r
+				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
+				LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
+				WHERE r.user_id = $user_id $extraWhere
+			");
+
 			$results = $wpdb->get_results(
-					"
-					SELECT r.id, r.time, r.age_category, r.garmin_id, r.position, e.id as event_id, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
-					date_format(e.date,'" . WPA_DATE_FORMAT . "') as event_date, ec.name as category, ec.time_format
-					FROM $this->RESULT_TABLE r
-					LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
-					LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
-					WHERE r.user_id = $user_id ORDER BY $sortCol $sortDir LIMIT $offset,$limit
-					"
+				"
+				SELECT r.id, r.time, r.age_category, r.garmin_id, r.position, e.id as event_id, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
+				date_format(e.date,'" . WPA_DATE_FORMAT . "') as event_date, ec.name as category, ec.time_format
+				FROM $this->RESULT_TABLE r
+				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
+				LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
+				WHERE r.user_id = $user_id $extraWhere ORDER BY $sortCol $sortDir LIMIT $offset,$limit
+				"
 			);
 
 			return array(
 				'sEcho' => $sEcho,
 				'iTotalRecords' => $this->get_result_count( $user_id, $request ),
-				'iTotalDisplayRecords' => $this->get_result_count( $user_id, $request ),
+				'iTotalDisplayRecords' => $result_display_count,
 				'aaData' => $results
 			);
 		}
@@ -167,38 +252,58 @@ if(!class_exists('WP_Athletics_DB')) {
 		/**
 		 * Returns a list of personal bests for each existing event category. If user is specified, will return results
 		 * for that user, otherwise will return bests for the all athletes.
-		 *
-		 * @param $user_id the user ID (optional)
 		 */
-		public function get_personal_bests($user_id, $age_category, $event_cat_id) {
+		public function get_personal_bests( $request ) {
 			global $wpdb;
 
 			wpa_log('getting event personal bests');
 
+			$user_id = $_POST['userId'];
+			$age_category = $_POST['ageCategory'];
+			$event_cat_id = $_POST['eventCategoryId'];
+			$event_sub_type_id = $_POST['eventSubTypeId'];
+			$date = $_POST['eventDate'];
 			$where = '';
+			$rank = '';
 			$orderBy = 'event_cat_id,time';
 			$groupByAndLimit = 'GROUP BY event_cat_id';
-			$selectDisplayName = "(SELECT meta_value FROM wp_usermeta WHERE meta_key = 'wp-athletics_name' AND user_id = r.user_id) as athlete_name";
+			$selectDisplayName = "(SELECT display_name FROM wp_users WHERE id = r.user_id) as athlete_name";
 
-			if(isset( $user_id ) ) {
+			if(isset( $user_id ) && $user_id != '' ) {
 				wpa_log('user id is ' . $user_id);
 				$where = $where . 'r.user_id = ' . $user_id;
 				$selectDisplayName = "'' as athlete_name";
 			}
 
-			if(isset( $age_category ) ) {
+			if(isset( $date ) && $date != 'all' && $date != '' ) {
+				wpa_log('date is ' . $date);
+				$dateWhere = $this->convert_date( $date );
+				if( $dateWhere != '' ) {
+					$where = $where . ($where == '' ? '' : ' AND ');
+					$where = $where . $dateWhere;
+				}
+			}
+
+			if(isset( $age_category ) && $age_category != '' && $age_category != 'all' ) {
 				wpa_log('age cat is ' . $age_category);
 				$where = $where . ($where == '' ? '' : ' AND ');
 				$where = $where . "age_category = '" . $age_category . "'";
 			}
 
-			if(isset( $event_cat_id ) ) {
+			if(isset( $event_sub_type_id ) && $event_sub_type_id != 'all' && $event_sub_type_id != '' ) {
+				wpa_log('sub type id is ' . $event_sub_type_id);
+				$where = $where . ($where == '' ? '' : ' AND ');
+				$where = $where . "sub_type_id = '" . $event_sub_type_id . "'";
+			}
+
+			if(isset( $event_cat_id) && $event_cat_id != 'all' && $event_cat_id != '' ) {
 				wpa_log('event cat is ' . $event_cat_id);
 				$where = $where . ($where == '' ? '' : ' AND ');
 				$where = $where . 'event_cat_id = ' . $event_cat_id;
 				$groupByAndLimit = 'LIMIT 10';
 				$orderBy = 'time';
-
+				$wpdb->query('SET @rank=0;');
+				$rank = '@rank:=@rank+1 AS rank,';
 			}
 
 			if( $where != '' ) {
@@ -206,18 +311,39 @@ if(!class_exists('WP_Athletics_DB')) {
 			}
 
 			$results = $wpdb->get_results(
-					"
-					SELECT d.id, d.athlete_name, d.age_category, d.time, d.user_id, date_format(d.event_date,'" . WPA_DATE_FORMAT . "') as event_date, d.event_cat_id, d.event_name,
-					d.event_location, d.event_sub_type_id, d.event_id, ec.name as category, ec.time_format, d.garmin_id from $this->EVENT_CAT_TABLE ec
-					JOIN (
-					SELECT r.id, r.age_category, r.time AS time, r.garmin_id, r.user_id, ec1.id AS event_cat_id, e.name AS event_name, e.location as event_location,
-					e.sub_type_id AS event_sub_type_id, e.id as event_id, e.date AS event_date," . $selectDisplayName . " from $this->RESULT_TABLE r
-					LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
-					LEFT JOIN $this->EVENT_CAT_TABLE ec1 ON e.event_cat_id = ec1.id " . $where . " ORDER BY $orderBy)
-					d ON d.event_cat_id = ec.id " . $groupByAndLimit
+				"SELECT $rank d.id, d.athlete_name, d.age_category, d.time, d.user_id, date_format(d.event_date,'" . WPA_DATE_FORMAT . "') as event_date, d.event_cat_id, d.event_name,
+				d.event_location, d.event_sub_type_id, d.event_id, ec.name as category, ec.time_format, d.garmin_id from $this->EVENT_CAT_TABLE ec
+				JOIN (
+				SELECT r.id, r.age_category, r.time AS time, r.garmin_id, r.user_id, ec1.id AS event_cat_id, e.name AS event_name, e.location as event_location,
+				e.sub_type_id AS event_sub_type_id, e.id as event_id, e.date AS event_date," . $selectDisplayName . " from $this->RESULT_TABLE r
+				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
+				LEFT JOIN $this->EVENT_CAT_TABLE ec1 ON e.event_cat_id = ec1.id " . $where . " ORDER BY $orderBy)
+				d ON d.event_cat_id = ec.id " . $groupByAndLimit
 			);
 
 			return $results;
+		}
+
+		/**
+		 * Converts a date paramters into a where clause
+		 */
+		public function convert_date( $date, $date_field = 'date' ) {
+			$returnVal = '';
+			if( $date != '' ) {
+				if( $date == 'this_month' ) {
+					$returnVal = ' YEAR(' . $date_field . ') = YEAR(CURDATE()) AND MONTH(date) = MONTH(CURDATE()) ';
+				}
+				else if( $date == 'this_year' ) {
+					$returnVal = ' YEAR(' . $date_field . ') = YEAR(CURDATE()) ';
+				}
+				else if( false !== strpos( ' ' . $date, 'year:' ) ) {
+					$yearArr = explode( ":", $date );
+					if(count($yearArr) == 2 ) {
+						$returnVal = ' YEAR(' . $date_field . ') = ' . $yearArr[1] . ' ';
+					}
+				}
+			}
+			return $returnVal;
 		}
 
 		/**
@@ -256,7 +382,19 @@ if(!class_exists('WP_Athletics_DB')) {
 
 			wpa_log('getting events for search term "' . $term . '"');
 
-			return $wpdb->get_results( "SELECT id as value, CONCAT(name, ' (', date_format(date,'%Y'), ')') as label FROM $this->EVENT_TABLE WHERE lower(name) like '%$term%' ORDER BY date DESC limit 10"  );
+			return $wpdb->get_results( "SELECT e.id AS value, CONCAT(e.name, ' (', ec.name, ', ', date_format(e.date,'%Y'), ')') AS label
+					FROM $this->EVENT_TABLE e
+					LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
+					WHERE LOWER(e.name) LIKE '%$term%' ORDER BY e.date DESC LIMIT 10" );
+		}
+
+		/**
+		 * Returns a list of athletes based on a search term
+		 */
+		public function get_athletes( $term ) {
+			global $wpdb;
+			wpa_log('getting athletes for search term "' . $term . '"');
+			return $wpdb->get_results( "SELECT id AS value, display_name AS label FROM wp_users WHERE LOWER(display_name) LIKE '%$term%' ORDER BY display_name ASC LIMIT 10" );
 		}
 
 		/**
@@ -268,6 +406,14 @@ if(!class_exists('WP_Athletics_DB')) {
 			wpa_log('getting single event by ID "' . $id . '"');
 
 			return $wpdb->get_row( "SELECT id, name, event_cat_id, sub_type_id, location, date_format(date,'" . WPA_DATE_FORMAT . "') as date FROM $this->EVENT_TABLE WHERE id = $id"  );
+		}
+
+		/**
+		 * Returns display name for a given user ID
+		 */
+		public function get_user_display_name( $user_id ) {
+			global $wpdb;
+			return $wpdb->get_var( "SELECT display_name FROM wp_users WHERE id = $user_id" );
 		}
 
 		/**
@@ -370,6 +516,22 @@ if(!class_exists('WP_Athletics_DB')) {
 		}
 
 		/**
+		 * Updates a user display name
+		 */
+		function update_user_display_name( $user_id, $display_name ) {
+			global $wpdb;
+			$success = $wpdb->update(
+				'wp_users',
+				array(
+					'display_name' => $display_name
+				),
+				array( 'ID' => $user_id ),
+				array( '%s' ),
+				array( '%d' )
+			);
+		}
+
+		/**
 		 * inserts a new event into the database
 		 */
 		function create_event( $data ) {
@@ -397,7 +559,7 @@ if(!class_exists('WP_Athletics_DB')) {
 		/**
 		 * Checks if an alternative sort column should be used
 		 */
-		public function translateResultSortColumn( $column)  {
+		public function convertResultColumn( $column)  {
 			if( $column == 'event_date' ) {
 				return 'e.date';
 			}

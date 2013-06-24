@@ -170,27 +170,24 @@ var WPA = {
 	 * Displays the user profile dialog
 	 */
 	displayUserProfileDialog: function(userId) {
-		this.closeDialogs();
-		
 		WPA.currentUserProfileId = userId;
-
-		if(WPA.userProfileDialog) {
-			WPA.userProfileDialog.dialog("open");
-			WPA.resultsTable.fnClearTable();
-			WPA.resultsTable.fnDraw();
-		}
-		else {
+		if(!WPA.userProfileDialog) {
 			this.createUserProfileDatatables(userId);
 			
 			WPA.userProfileDialog = jQuery('#user-profile-dialog').dialog({
 				title: this.getProperty('user_profile_dialog_title'),
 				autoOpen: true,
+				resizable: false,
 				modal: true,
 				width: jQuery(document).width()-100,
-				height: jQuery(window).height()-100,
+				height: 'auto',
+				maxHeight: jQuery(window).height()-100,
 			})
 		}
-		WPA.getPersonalBests(userId);
+		// get personal bests
+		WPA.getPersonalBests();
+		
+		// get user profile info
 		WPA.Ajax.getUserProfile(userId, function(result) {
 			jQuery('#wpa-profile-name').html(result.name);
 			jQuery('#wpa-profile-fave-event').html(WPA.getEventCategoryDescription(result.faveEvent));
@@ -201,27 +198,55 @@ var WPA = {
 			else {
 				jQuery('#wpaUserProfilePhoto').addClass('wpa-profile-photo-default')
 			}
+			WPA.userProfileDialog.dialog("close");
+			WPA.userProfileDialog.dialog("open");
+			WPA.resultsTable.fnDraw(false);
 		})
+		
+		// set up the period filter
+		WPA.Ajax.getUserOldestResultYear(userId, function(result) {
+			
+			// remove old values
+			jQuery('#profileFilterPeriod option[year="y"]').remove();
+
+			if(result) {
+				var userYear = parseInt(result);
+				var currentYear = new Date().getFullYear()-1;
+				if(currentYear > userYear) {
+					for(var year = currentYear; year >= userYear; year--) {
+						jQuery("#profileFilterPeriod").append('<option year="y" value="year:' + year + '">' + year + '</option>');
+					}
+				}
+			}
+			
+			// filter period combo
+			jQuery("#profileFilterPeriod").combobox({
+				select: function(event, ui) {
+					WPA.profileFilterPeriod = ui.item.value;
+					WPA.resultsTable.fnFilter( WPA.profileFilterPeriod, 1 );
+					WPA.getPersonalBests();
+				},
+				selectClass: 'filter-highlight'
+			});
+		});
 	},
 	
 	/**
 	 * Displays the event results dialog
 	 */
 	displayEventResultsDialog: function(eventId) {
-		this.closeDialogs();
-
-		if(WPA.eventResultsDialog) {
-			WPA.eventResultsDialog.dialog("open");
-		}
-		else {
+		if(!WPA.eventResultsDialog) {
 			this.createEventResultsDatatables();
 			
 			WPA.eventResultsDialog = jQuery('#event-results-dialog').dialog({
 				title: this.getProperty('event_results_dialog_title'),
 				autoOpen: true,
+				resizable: false,
 				modal: true,
-				width: jQuery(document).width()-400,
-				height: jQuery(window).height()-100,
+				width: 600,
+				height: 'auto',
+				resizable: false,
+				maxHeight: 600
 			})
 		}
 		
@@ -235,6 +260,8 @@ var WPA = {
 		WPA.Ajax.getEventResults(eventId, function(result) {
 			WPA.eventResultsTable.fnClearTable();
 			WPA.eventResultsTable.fnAddData(result);
+			WPA.eventResultsDialog.dialog("close");
+			WPA.eventResultsDialog.dialog("open");
 		});
 	},
 	
@@ -245,7 +272,12 @@ var WPA = {
 		WPA.Ajax.getPersonalBests(function(result) {
 			WPA.pbTable.fnClearTable();
 			WPA.pbTable.fnAddData(result);
-		}, userId);
+		}, {
+			userId: WPA.currentUserProfileId,
+			ageCategory: WPA.profileFilterAge,
+			eventSubTypeId: WPA.profileFilterType,
+			eventDate: WPA.profileFilterPeriod
+		});
 	},
 	
 	/**
@@ -256,10 +288,13 @@ var WPA = {
 		WPA.eventResultsTable = jQuery('#event-results-table').dataTable(WPA.createTableConfig({
 			//"sDom": 'rt',
 			"bPaginate": false,
-			"aaSorting": [[ 2, "asc" ]],
+			"aaSorting": [[ 1, "asc" ]],
 			"aoColumns": [{ 
 				"mData": "time_format",
 				"bVisible": false
+			},{ 
+				"mData": "rank",
+				"sClass": "datatable-center"
 			},{ 
 				"mData": "athlete_name",
 				"mRender" : WPA.renderProfileLinkColumn,
@@ -287,6 +322,11 @@ var WPA = {
 	 * Creates the user profile datatables
 	 */
 	createUserProfileDatatables: function(userId) {
+		
+		// destroy current table if it exists
+		if(WPA.resultsTable) {
+			//WPA.resultsTable.fnDestroy();
+		}
 
 		// Results table
 		WPA.resultsTable = jQuery('#results-table').dataTable(WPA.createTableConfig({
@@ -357,7 +397,8 @@ var WPA = {
 				"sClass": "datatable-bold",
 				"mRender": WPA.renderTimeColumn
 			},{ 
-				"mData": "event_name"
+				"mData": "event_name",
+				"mRender" : WPA.renderEventLinkColumn
 			},{
 				"mData": "event_location"
 			},{
@@ -386,6 +427,269 @@ var WPA = {
 		}
 		if(WPA.userProfileDialog) {
 			WPA.userProfileDialog.dialog("close");
+		}
+	},
+	
+	/**
+	 * configures blur/focus functions of any fields with the 'wpa-search' class
+	 */
+	setupSearchFields: function() {
+		jQuery('.wpa-search').each(function() {
+			var defaultText = jQuery(this).attr('default-text');
+			jQuery(this).focus(function() {
+				var text = jQuery(this).attr('default-text');
+		    	if(jQuery(this).val() == text) {
+		    		jQuery(this).val('').removeClass('wpa-search-disabled');
+		    	}
+		    	else {
+		    		jQuery(this).select();
+		    	}
+		    }).blur(function() {
+		    	var text = jQuery(this).attr('default-text');
+		    	var value = jQuery(this).val();
+		    	if(value == '') {
+		    		jQuery(this).val(text).addClass('wpa-search-disabled');
+		    	}
+		    }).val(defaultText);
+		});	
+	},
+	
+	/**
+	 * configures the wpa autcomplete search field
+	 */
+	setupAutocompleteSearch: function() {
+		jQuery('#wpa-search').catcomplete({
+			source: WPA.Ajax.url + '?action=wpa_search_autocomplete',
+			minLength: 2,
+			select: function( event, ui ) {
+				if(ui.item.category == 'event') {
+					WPA.displayEventResultsDialog(ui.item.value);
+				}
+				else if(ui.item.category == 'athlete') {
+					WPA.displayUserProfileDialog(ui.item.value);
+				}
+				setTimeout('jQuery("#wpa-search").val("").blur();', 1000);
+			}
+	    })
+	},
+	
+	/**
+	 * configures the filters for 'records' or 'my results' page
+	 */
+	setupFilters: function(userId, table, personalBestsCallFn, eventNameFilter, columnIndexes) {
+		// add items to combos
+		jQuery(WPA.globals.eventCategories).each(function(index, item) {
+			jQuery("#filterEvent").append('<option value="' + item.id + '">' + item.name + '</option>');
+		});
+		
+		jQuery(WPA.globals.eventTypes).each(function(index, item) {
+			jQuery("#filterType").append('<option value="' + item.id + '">' + item.description + '</option>');
+		});
+		
+		jQuery(WPA.globals.ageCategories).each(function(index, item) {
+			jQuery("#filterAge").append('<option value="' + item.id + '">' + item.description + '</option>');
+		});
+		
+		WPA.filterPeriod = undefined;
+		WPA.filterEvent = undefined;
+		WPA.filterType = undefined;
+		WPA.filterAge = undefined;
+		
+		// filter event combo
+		jQuery("#filterEvent").combobox({
+			select: function(event, ui) {
+				WPA.filterEvent = ui.item.value;
+				if(table) table.fnFilter( ui.item.value, columnIndexes.event );
+			},
+			selectClass: 'filter-highlight'
+		});
+
+		// filter type combo
+		jQuery("#filterType").combobox({
+			select: function(event, ui) {
+				WPA.filterType = ui.item.value;
+				if(table) table.fnFilter( ui.item.value, columnIndexes.type );
+				if(personalBestsCallFn) personalBestsCallFn();
+			},
+			selectClass: 'filter-highlight'
+		});
+
+		// filter age combo
+		jQuery("#filterAge").combobox({
+			select: function(event, ui) {
+				WPA.filterAge = ui.item.value;
+				if(table) table.fnFilter( ui.item.value, columnIndexes.age );
+				if(personalBestsCallFn) personalBestsCallFn();
+			},
+			selectClass: 'filter-highlight'
+		});
+		
+		// set up the period filter
+		WPA.Ajax.getUserOldestResultYear(userId, function(result) {
+			
+			if(result) {
+				var userYear = parseInt(result);
+				var currentYear = new Date().getFullYear()-1;
+				if(currentYear > userYear) {
+					for(var year = currentYear; year >= userYear; year--) {
+						jQuery("#filterPeriod").append('<option year="y" value="year:' + year + '">' + year + '</option>');
+					}
+				}
+			}
+			
+			// filter period combo
+			jQuery("#filterPeriod").combobox({
+				select: function(event, ui) {
+					WPA.filterPeriod = ui.item.value;
+					if(table) table.fnFilter( ui.item.value, columnIndexes.period );
+					if(personalBestsCallFn) personalBestsCallFn();
+				},
+				selectClass: 'filter-highlight'
+			});
+		});
+		
+		// filter event name
+		if(eventNameFilter) {
+			WPA.setupInputFilter('filterEventName', 'filterEventNameCancel', eventNameFilter);
+		}
+	},
+	
+	/**
+	 * configures the dialogs for user profile and event results
+	 */
+	setupDialogs: function() {
+		// add items to combos
+		jQuery(WPA.globals.eventCategories).each(function(index, item) {
+			jQuery("#profileFilterEvent").append('<option value="' + item.id + '">' + item.name + '</option>');
+		});
+		
+		jQuery(WPA.globals.eventTypes).each(function(index, item) {
+			jQuery("#profileFilterType").append('<option value="' + item.id + '">' + item.description + '</option>');
+		});
+		
+		jQuery(WPA.globals.ageCategories).each(function(index, item) {
+			jQuery("#profileFilterAge").append('<option value="' + item.id + '">' + item.description + '</option>');
+		});
+		
+		// filter event combo
+		jQuery("#profileFilterEvent").combobox({
+			select: function(event, ui) {
+				WPA.profileFilterEvent = ui.item.value;
+				WPA.resultsTable.fnFilter( ui.item.value, 5 );
+			},
+			selectClass: 'filter-highlight'
+		});
+
+		// filter type combo
+		jQuery("#profileFilterType").combobox({
+			select: function(event, ui) {
+				WPA.profileFilterType = ui.item.value;
+				WPA.resultsTable.fnFilter( ui.item.value, 4 );
+				WPA.getPersonalBests();
+			},
+			selectClass: 'filter-highlight'
+		});
+
+		// filter age combo
+		jQuery("#profileFilterAge").combobox({
+			select: function(event, ui) {
+				WPA.profileFilterAge = ui.item.value;
+				WPA.resultsTable.fnFilter( ui.item.value, 6 );
+				WPA.getPersonalBests();
+			},
+			selectClass: 'filter-highlight'
+		});
+		
+		// filter event name
+		WPA.setupInputFilter('profileFilterEventName', 'profileFilterEventNameCancel', WPA.doUserProfileEventNameFilter);
+	},
+	
+	/**
+	 * configures an input filter element by providing an element ID and action function
+	 */
+	setupInputFilter: function(elId, cancelBtnId, actionFn) {
+		// filter event name
+		jQuery('#' + elId).keyup(function(e) {
+		    if(e.which == 13) {
+		    	actionFn();
+		    }
+		    
+		    var highlightClass = jQuery(this).attr('highlight-class');
+
+		    if(jQuery(this).val() != '') {
+		    	if(highlightClass) {
+		    		jQuery(this).addClass(highlightClass).removeClass('ui-state-default');
+		    	}
+				jQuery('#' + cancelBtnId).show();
+		    }
+		    else {
+		    	if(highlightClass) {
+		    		jQuery(this).removeClass(highlightClass).addClass('ui-state-default');
+		    	}
+		    	jQuery('#' + cancelBtnId).hide();
+		    }
+		});
+
+		jQuery('#' + cancelBtnId).click(function() {
+			jQuery(this).hide();
+			
+			var highlightClass = jQuery('#' + elId).attr('highlight-class');
+			if(highlightClass) {
+				jQuery('#' + elId).removeClass(highlightClass).addClass('ui-state-default');
+			}
+			
+			jQuery('#' + elId).val('').blur();
+			actionFn();
+		});
+	},
+	
+	/**
+	 * sets up common javascript listeners for both 'records' and 'my results' features
+	 */
+	setupCommon: function() {
+		
+		// set up tabs
+		jQuery('.wpa-results-tabs').tabs({
+			activate: function( event, ui ) {
+				var suffix = WPA.userProfileDialog && WPA.userProfileDialog.dialog("isOpen") ? '-dialog' : '';
+				
+				if(ui.newPanel[0].attributes['wpa-tab-type'] && ui.newPanel[0].attributes['wpa-tab-type'].value == 'pb') {
+					jQuery('.filter-ignore-for-pb' + suffix).hide();
+				}
+				else {
+					jQuery('.filter-ignore-for-pb' + suffix).show();
+				}
+			}
+		});
+		
+		// apply focus/blur functions to any search fields
+	    WPA.setupSearchFields();
+
+		// setup search
+		WPA.setupAutocompleteSearch();
+
+		// setup dialogs
+		WPA.setupDialogs();
+		
+		// tooltips on add results dialog
+		jQuery(document).tooltip({
+			track: true
+		});
+	},
+	
+	/**
+	 * performs filtering of event name on the user profile dialog
+	 */
+	doUserProfileEventNameFilter: function() {
+		var defaultText = jQuery('#profileFilterEventName').attr('default-text');
+		var val = jQuery('#profileFilterEventName').val();
+		if(val != '' && defaultText != val) {
+			WPA.profileFilterEventName = val;
+			WPA.resultsTable.fnFilter( val, 2 );
+		}
+		else {
+			WPA.profileFilterEventName = null;
+			WPA.resultsTable.fnFilter( '', 2 );
 		}
 	},
 	
@@ -419,6 +723,10 @@ var WPA = {
 		return '<div class="wpa-link" onclick="WPA.displayEventResultsDialog(' + full['event_id'] + ')">' + data + '</div>';
 	},
 	
+	renderTop10LinkColumn: function(data, type, full) {
+		return '<div class="wpa-link" onclick="WPA.Records.displayEventTop10Dialog(' + data + ', \'' + full['category'] + '\')">' + WPA.getProperty('column_top_10') + '</div>';
+	},
+	
 	renderPositionColumn: function(data, type, full) {
 		if(parseInt(data) > 0) {
 			return data
@@ -426,165 +734,3 @@ var WPA = {
 		return '-';
 	}
 };
-
-(function( $ ) {
-    $.widget( "custom.combobox", {
-      _create: function() {
-        this.wrapper = $( "<span>" )
-          .addClass( "custom-combobox" )
-          .insertAfter( this.element );
- 
-        this.element.hide();
-        this._createAutocomplete();
-        this._createShowAllButton();
-      },
- 
-      _createAutocomplete: function() {
-        var selected = this.element.children( ":selected" ),
-          value = selected.val() ? selected.text() : "";
- 
-        this.input = $( "<input>" )
-          .appendTo( this.wrapper )
-          .val( value )
-          .attr( "title", "" )
-          .addClass( "custom-combobox-input ui-widget ui-widget-content ui-state-default ui-corner-left" )
-          .autocomplete({
-            delay: 0,
-            minLength: 0,
-            source: $.proxy( this, "_source" )
-          })
-          .tooltip({
-            tooltipClass: "ui-state-highlight"
-          });
- 
-        this._on( this.input, {
-          autocompleteselect: function( event, ui ) {
-            ui.item.option.selected = true;
-            this._trigger( "select", event, {
-              item: ui.item.option
-            });
-          },
- 
-          autocompletechange: "_removeIfInvalid"
-        });
-      },
- 
-      _createShowAllButton: function() {
-        var input = this.input,
-          wasOpen = false;
- 
-        this.button = $( "<a>" )
-          .attr( "tabIndex", -1 )
-          .attr( "title", "Show All Items" )
-          .tooltip()
-          .appendTo( this.wrapper )
-          .button({
-            icons: {
-              primary: "ui-icon-triangle-1-s"
-            },
-            text: false
-          })
-          .removeClass( "ui-corner-all" )
-          .addClass( "custom-combobox-toggle ui-corner-right" )
-          .mousedown(function() {
-            wasOpen = input.autocomplete( "widget" ).is( ":visible" );
-          })
-          .click(function() {
-            input.focus();
- 
-            // Close if already visible
-            if ( wasOpen ) {
-              return;
-            }
- 
-            // Pass empty string as value to search for, displaying all results
-            input.autocomplete( "search", "" );
-          });
-      },
- 
-      _source: function( request, response ) {
-        var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
-        response( this.element.children( "option" ).map(function() {
-          var text = $( this ).text();
-          if ( this.value && ( !request.term || matcher.test(text) ) )
-            return {
-              label: text,
-              value: text,
-              option: this
-            };
-        }) );
-      },
- 
-      _removeIfInvalid: function( event, ui ) {
- 
-        // Selected an item, nothing to do
-        if ( ui.item ) {
-          return;
-        }
- 
-        // Search for a match (case-insensitive)
-        var value = this.input.val(),
-          valueLowerCase = value.toLowerCase(),
-          valid = false;
-        this.element.children( "option" ).each(function() {
-          if ( $( this ).text().toLowerCase() === valueLowerCase ) {
-            this.selected = valid = true;
-            return false;
-          }
-        });
- 
-        // Found a match, nothing to do
-        if ( valid ) {
-          return;
-        }
- 
-        // Remove invalid value
-        this.input
-          .val( "" )
-          .attr( "title", value + " didn't match any item" )
-          .tooltip( "open" );
-        this.element.val( "" );
-        this._delay(function() {
-          this.input.tooltip( "close" ).attr( "title", "" );
-        }, 2500 );
-        this.input.data( "ui-autocomplete" ).term = "";
-      },
-      
-      addCls: function(cls) {
-    	  this.input.addClass(cls);
-      },
-      
-      removeCls: function(cls) {
-    	  this.input.removeClass(cls);
-      },
-      
-      disabled: function(enable) {
-    	  if(enable) {
-    		  this.disable();
-    	  }
-    	  else {
-    		  this.enable();
-    	  }
-      },
-      
-      disable: function() {
-    	  this.input.prop('disabled', true);
-    	  this.button.remove();
-      },
-      
-      enable: function() {
-    	  this.input.prop('disabled', false);
-    	  this._createShowAllButton(); 
-      },
-      
-      setValue : function(value) {
-	    this.element.val(value);
-	    this.input.val($("#" + this.bindings[0].id + " option[value='" + value + "']").text());
-      },
- 
-      _destroy: function() {
-        this.wrapper.remove();
-        this.element.show();
-      }
-    });
-  })( jQuery );

@@ -11,30 +11,82 @@ WPA.Records = {
 	 */
 	createTableHTML: function(id) {
 		return '<table width="100%" class="display ui-state-default" id="table-' + id + '">' +
-					'<thead>' + 
-						'<th></th>' +
-						'<th></th>' +
-						'<th>' + WPA.getProperty('column_category') + '</th>' +
-						'<th>' + WPA.getProperty('column_athlete_name') + '</th>' +
-						'<th>' + WPA.getProperty('column_time') + '</th>' +
-						'<th>' + WPA.getProperty('column_event_name') + '</th>' +
-						'<th>' + WPA.getProperty('column_event_location') + '</th>' +
-						'<th>' + WPA.getProperty('column_event_type') + '</th>' +
-						'<th>' + WPA.getProperty('column_event_date') + '</th>' +
-						'<th></th>' +
-					'</thead>' + 
-					'<tbody></tbody>' +
-				'</table>';
+			'<thead>' + 
+				'<tr>' +
+					'<th></th>' +
+					'<th></th>' +
+					'<th>' + WPA.getProperty('column_category') + '</th>' +
+					'<th>' + WPA.getProperty('column_athlete_name') + '</th>' +
+					'<th>' + WPA.getProperty('column_time') + '</th>' +
+					'<th>' + WPA.getProperty('column_event_name') + '</th>' +
+					'<th>' + WPA.getProperty('column_event_location') + '</th>' +
+					'<th>' + WPA.getProperty('column_event_type') + '</th>' +
+					'<th>' + WPA.getProperty('column_event_date') + '</th>' +
+					'<th></th>' +
+					'<th></th>' +
+				'</tr>' +
+			'</thead>' + 
+			'<tbody></tbody>' +
+		'</table>';
 	},
 	
 	/**
 	 * Loads personal bests
 	 */
-	getPersonalBests: function(ageCategory) {
+	getPersonalBests: function() {
 		WPA.Ajax.getPersonalBests(function(result) {
-			WPA.Records.tables[ageCategory].fnClearTable();
-			WPA.Records.tables[ageCategory].fnAddData(result);
-		}, -1, ageCategory );
+			WPA.Records.tables[WPA.Records.currentCategory].fnClearTable();
+			WPA.Records.tables[WPA.Records.currentCategory].fnAddData(result);
+		}, {
+			ageCategory: WPA.Records.currentCategory,
+			eventSubTypeId: WPA.filterType,
+			eventDate: WPA.filterPeriod
+		});
+	},
+	
+	/**
+	 * Loads top 10 personal bests
+	 */
+	getTop10PersonalBests: function(eventCatId) {
+		WPA.Ajax.getPersonalBests(function(result) {
+			WPA.Records.tables['top10'].fnClearTable();
+			WPA.Records.tables['top10'].fnAddData(result);
+			WPA.Records.top10Dialog.dialog('open');
+		}, {
+			ageCategory: WPA.Records.currentCategory,
+			eventSubTypeId: WPA.filterType,
+			eventDate: WPA.filterPeriod,
+			eventCategoryId: eventCatId
+		});
+	},
+	
+	/**
+	 * Displays the top 10 dialog for a given age category
+	 */
+	displayEventTop10Dialog: function(eventCatId, category) {
+		WPA.Records.top10Dialog.dialog('option', 'title', WPA.Records.generateTop10DialogTitle(category));		
+		WPA.Records.getTop10PersonalBests(eventCatId);
+	},
+	
+	/**
+	 * Generates the title of the top 10 dialog by replacing tokens in the string literal
+	 */
+	generateTop10DialogTitle: function(category) {
+		var title =  WPA.getProperty('top_10_dialog_title');
+		
+		// category
+		title = title.replace('[category]', category);
+		
+		// type
+		title = title.replace('[type]', jQuery('#filterType').combobox('getLabel'));
+		
+		// age 
+		title = title.replace('[age]', WPA.getAgeCategoryDescription(WPA.Records.currentCategory));
+		
+		// period
+		title = title.replace('[period]', jQuery('#filterPeriod').combobox('getLabel'));
+		
+		return title;
 	},
 	
 	/**
@@ -71,6 +123,62 @@ WPA.Records = {
 				"mRender" : WPA.renderEventTypeColumn
 			},{ 
 				"mData": "event_date"
+			},{
+				"mData": "garmin_id",
+				"sWidth": "16px",
+				"mRender": WPA.renderGarminColumn,
+				"bSortable": false
+			},{
+				"mData": "event_cat_id",
+				"sWidth": "20px",
+				"mRender": WPA.renderTop10LinkColumn,
+				"bSortable": false,
+				"sClass" : "datatable-center"
+			}]
+		}));
+	},
+	
+	/**
+	 * Creates the top 10 datatable
+	 */
+	createTop10DataTable: function() {
+		this.tables['top10'] = jQuery('#table-top-10').dataTable(WPA.createTableConfig({
+			"sDom": 'rt',
+			"bPaginate": false,
+			"aaSorting": [[ 1, "asc" ]],
+			"aoColumns": [{ 
+				"mData": "time_format",
+				"bVisible": false
+			},{ 
+				"mData": "time",
+				"bVisible": false
+			},{
+				"mData": "rank",
+				"sClass": "datatable-bold",
+				"bSortable": false
+			},{
+				"mData": "athlete_name",
+				"mRender" : WPA.renderProfileLinkColumn,
+				"bSortable": false
+			},{
+				"mData": "time",
+				"mRender": WPA.renderTimeColumn,
+				"sClass": "datatable-bold",
+				"bSortable": false
+			},{ 
+				"mData": "event_name",
+				"mRender" : WPA.renderEventLinkColumn,
+				"bSortable": false
+			},{
+				"mData": "event_location",
+				"bSortable": false
+			},{
+				"mData": "event_sub_type_id",
+				"mRender" : WPA.renderEventTypeColumn,
+				"bSortable": false
+			},{ 
+				"mData": "event_date",
+				"bSortable": false
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",

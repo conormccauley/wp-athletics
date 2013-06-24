@@ -152,7 +152,6 @@ if(!class_exists('WP_Athletics')) {
 
 			if(!get_user_meta( $current_user->ID, 'wpa_athlete_name', true) ) {
 				add_user_meta( $current_user->ID, 'wp-athletics_age_category', '', true );
-				add_user_meta( $current_user->ID, 'wp-athletics_name', $current_user->display_name, true );
 				add_user_meta( $current_user->ID, 'wp-athletics_fave_event_category', '', true );
 			}
 		}

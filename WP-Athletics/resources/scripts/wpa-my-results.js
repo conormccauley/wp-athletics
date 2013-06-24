@@ -134,7 +134,8 @@ WPA.MyResults = {
 		// set visibility of time fields
 		var fields = jQuery('div[time-format]');
 		jQuery.each(fields, function() {
-			jQuery(this).val('').hide().removeClass('add-result-required');
+			jQuery(this).find('input').val('').removeClass('add-result-required');
+			jQuery(this).hide();
 		});
 		
 		var selectEl = jQuery("#addResultEventCategory");
@@ -165,7 +166,12 @@ WPA.MyResults = {
 		WPA.Ajax.getPersonalBests(function(result) {
 			WPA.MyResults.pbTable.fnClearTable();
 			WPA.MyResults.pbTable.fnAddData(result);
-		}, WPA.userId);
+		}, {
+			userId: WPA.userId,
+			ageCategory: WPA.filterAge,
+			eventSubTypeId: WPA.filterType,
+			eventDate: WPA.filterPeriod
+		});
 	},
 
 	/** 
@@ -212,8 +218,7 @@ WPA.MyResults = {
 		});
 		
 		// set age category
-		var val = jQuery("#myProfileAgeClass").val();
-		jQuery("#addResultAgeCategory").val(val).combobox('setValue', val);
+		jQuery("#addResultAgeCategory").val(WPA.currentAgeCategory).combobox('setValue', WPA.currentAgeCategory);
 	},
 	
 	/** 
@@ -320,4 +325,20 @@ WPA.MyResults = {
 		}));
 
 	},
+	
+	/**
+	 * performs filter search on the event name
+	 */
+	doEventNameFilter: function() {
+		var defaultText = jQuery('#filterEventName').attr('default-text');
+		var val = jQuery('#filterEventName').val();
+		if(val != '' && defaultText != val) {
+			WPA.filterEventName = val;
+			WPA.MyResults.myResultsTable.fnFilter( val, 3 );
+		}
+		else {
+			WPA.filterEventName = null;
+			WPA.MyResults.myResultsTable.fnFilter( '', 3 );
+		}
+	}
 };
