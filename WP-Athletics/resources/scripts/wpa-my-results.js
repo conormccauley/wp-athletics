@@ -270,6 +270,10 @@ WPA.MyResults = {
 				"sWidth": "20px",
 				"mRender": WPA.renderPositionColumn
 			},{
+				"mData": "club_rank",
+				"sWidth": "20px",
+				"bSortable": false
+			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",
 				"mRender": WPA.renderGarminColumn,
@@ -316,6 +320,10 @@ WPA.MyResults = {
 				"mRender" : WPA.renderAgeCategoryColumn
 			},{ 
 				"mData": "event_date"
+			},{
+				"mData": "club_rank",
+				"sWidth": "20px",
+				"bSortable": false
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",

@@ -10,11 +10,12 @@ return array(
 	'column_event_location' => 'Location',
 	'column_category' => 'Distance',
 	'column_time' => 'Time',
-	'column_position' => '#',
+	'column_position' => 'Pos.',
 	'column_garmin' => 'Garmin',
 	'column_athlete_name' => 'Name',
 	'column_age_category' => 'Class',
 	'column_top_10' => 'Top 10',
+	'column_club_rank' => 'Rank',
 
 	// my results - profile
 	'my_profile_display_name_label' => 'Athlete Name',
@@ -89,6 +90,7 @@ return array(
 	'help_add_result_event_name' => 'The event may already exist in our database, start typing the event name and select if it appears in the drop down menu, otherwise it will be added as a new event.',
 	'help_add_result_garmin_id' => 'If you have the activity recorded on Garmin Connect, copy and paste the activity ID in to this field.<br/><br/>For example if the web address of your activity is <strong>http://connect.garmin.com/activity/317262142</strong>, the ID is <strong>317262142</strong>',
 	'help_add_result_cancel_event' => 'Remove chosen event',
+	'help_column_rank' => 'This column represents the overall club ranking for this result, based on age category and event',
 
 	// datatables
 	'table_no_results' => 'There are no event results to display',

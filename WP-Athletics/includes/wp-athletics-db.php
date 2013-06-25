@@ -233,7 +233,7 @@ if(!class_exists('WP_Athletics_DB')) {
 			$results = $wpdb->get_results(
 				"
 				SELECT r.id, r.time, r.age_category, r.garmin_id, r.position, e.id as event_id, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
-				date_format(e.date,'" . WPA_DATE_FORMAT . "') as event_date, ec.name as category, ec.time_format
+				date_format(e.date,'" . WPA_DATE_FORMAT . "') as event_date, ec.name as category, ec.time_format, e.event_cat_id as event_cat
 				FROM $this->RESULT_TABLE r
 				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
 				LEFT JOIN $this->EVENT_CAT_TABLE ec ON e.event_cat_id = ec.id
@@ -241,12 +241,35 @@ if(!class_exists('WP_Athletics_DB')) {
 				"
 			);
 
+			// loop each result and find the overall club rank for the age cat and event
+			foreach ( $results as $result ) {
+				$result->club_rank = $this->get_result_club_rank( $result->id, $result->age_category, $result->event_cat);
+			}
+
 			return array(
 				'sEcho' => $sEcho,
 				'iTotalRecords' => $this->get_result_count( $user_id, $request ),
 				'iTotalDisplayRecords' => $result_display_count,
 				'aaData' => $results
 			);
+		}
+
+		/**
+		 * Returns the overall club rank for a specified result, filtered by event category (e.g 1500m) and age category (e.g M)
+		 */
+		public function get_result_club_rank( $result_id, $age_category, $event_cat_id ) {
+			global $wpdb;
+
+			return $wpdb->get_var( "
+				SELECT rank_table.rank FROM
+					(SELECT r1.id as id, @curRow := @curRow+1 as rank FROM wp_wpa_result r1
+					LEFT JOIN wp_wpa_event e1 ON r1.event_id = e1.id
+					LEFT JOIN wp_wpa_event_cat ec1 ON e1.event_cat_id = ec1.id
+					JOIN (SELECT @curRow := 0) crow
+					WHERE r1.age_category = '$age_category' AND e1.event_cat_id = $event_cat_id
+					ORDER BY r1.time) rank_table
+				WHERE rank_table.id = $result_id;
+			" );
 		}
 
 		/**
@@ -320,6 +343,11 @@ if(!class_exists('WP_Athletics_DB')) {
 				LEFT JOIN $this->EVENT_CAT_TABLE ec1 ON e.event_cat_id = ec1.id " . $where . " ORDER BY $orderBy)
 				d ON d.event_cat_id = ec.id " . $groupByAndLimit
 			);
+
+			// loop each result and find the overall club rank for the age cat and event
+			foreach ( $results as $result ) {
+				$result->club_rank = $this->get_result_club_rank( $result->id, $result->age_category, $result->event_cat_id );
+			}
 
 			return $results;
 		}

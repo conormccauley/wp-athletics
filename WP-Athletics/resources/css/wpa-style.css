@@ -165,6 +165,16 @@
 	background: url(../images/help-icon.png) no-repeat;
 }
 
+.column-help {
+	height: 20px;
+	width: 20px;
+	display: inline-block;
+	position: relative;
+	cursor: pointer;
+	top: 5px;
+	background: url("../images/question.png") no-repeat scroll 2px 0 transparent;
+}
+
 .add-result-cancel-event {
 	height: 20px;
 	width: 20px;
