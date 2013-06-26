@@ -369,6 +369,7 @@ if(!class_exists('WPA_Base')) {
 									<th><?php echo $this->get_property('column_age_category') ?></th>
 									<th><?php echo $this->get_property('column_time') ?></th>
 									<th><?php echo $this->get_property('column_position') ?></th>
+									<th><?php echo $this->get_property('column_club_rank') ?><span class="column-help" title="<?php echo $this->get_property('help_column_rank'); ?>"></span></th>
 									<th></th>
 								</tr>
 							</thead>
@@ -388,6 +389,7 @@ if(!class_exists('WPA_Base')) {
 									<th><?php echo $this->get_property('column_event_type') ?></th>
 									<th><?php echo $this->get_property('column_age_category') ?></th>
 									<th><?php echo $this->get_property('column_event_date') ?></th>
+									<th><?php echo $this->get_property('column_club_rank') ?><span class="column-help" title="<?php echo $this->get_property('help_column_rank'); ?>"></span></th>
 									<th></th>
 								</tr>
 							</thead>

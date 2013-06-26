@@ -28,6 +28,7 @@ if(!class_exists('WP_Athletics_DB')) {
 		 * creates/updates the database tables
 		 */
 		public function create_db() {
+			global $wpa_settings;
 			$installed_ver = get_option( 'wp-athletics_db_version', 'not_installed');
 
 			wpa_log('Installed DB version is ' . $installed_ver);
@@ -82,9 +83,17 @@ if(!class_exists('WP_Athletics_DB')) {
 
 				add_option( "wp-athletics_db_version", WPA_DB_VERSION );
 
+				wpa_log('installed version is ' . $installed_ver);
+
 				// is this a first time install? if so, create event categories and user meta data
 				if($installed_ver == 'not_installed') {
 					$this->create_default_event_cats();
+
+					// create sample data
+					if( (bool)$wpa_settings['create_demo_data_on_activate'] ) {
+						require_once 'wp-athletics-demo-data.php';
+						new WP_Athletics_Demo( $this );
+					}
 				}
 			}
 		}
@@ -449,7 +458,8 @@ if(!class_exists('WP_Athletics_DB')) {
 		 */
 		function update_event( $data ) {
 			global $wpdb;
-			$isUpdate = $data['resultId'] != null && $data['resultId'] != '';
+
+			$isUpdate = isset($data['resultId']) && $data['resultId'] != '';
 			$createEvent = $data['eventId'] == null || $data['eventId'] == '';
 
 			// event does not exist, we'll create a new one
@@ -611,6 +621,34 @@ if(!class_exists('WP_Athletics_DB')) {
 			$wpdb->query("delete from wp_users where user_login like 'sample_user_%'");
 			$wpdb->query("delete from $this->EVENT_TABLE");
 			$wpdb->query("delete from $this->RESULT_TABLE");
+		}
+
+		/**
+		 * Removes all WPA tables and data
+		 */
+		public function uninstall_wpa() {
+			$this->clear_sample_data();
+			$this->remove_wpa_data();
+			$this->uninstall_tables();
+		}
+
+		/**
+		 * removes all the WP Athletics tables
+		 */
+		function uninstall_tables() {
+			global $wpdb;
+			$wpdb->query("drop table $this->EVENT_TABLE");
+			$wpdb->query("drop table $this->RESULT_TABLE");
+			$wpdb->query("drop table $this->EVENT_CAT_TABLE");
+		}
+
+		/**
+		 * removes any WP Athletics fields from the usermeta and options table
+		 */
+		function remove_wpa_data() {
+			global $wpdb;
+			$wpdb->query("delete from wp_usermeta where meta_key like '%wp-athletics%'");
+			$wpdb->query("delete from wp_options where option_name like '%wp-athletics%'");
 		}
 	}
 }

@@ -22,6 +22,7 @@ if(!class_exists('WP_Athletics_Demo')) {
 		 */
 		public function __construct($db) {
 			parent::__construct($db);
+			$this->create_sample_data();
 		}
 
 		/**
@@ -120,8 +121,6 @@ if(!class_exists('WP_Athletics_Demo')) {
 				);
 
 				$data['id'] =  $this -> wpa_db -> create_event( $data );
-
-				wpa_log($data);
 
 				array_push( $this -> events, $data );
 			}

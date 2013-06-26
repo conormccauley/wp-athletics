@@ -2,9 +2,9 @@
 /*
 Plugin Name: WP Athletics
 Plugin URI: http://www.conormccauley.me/wp-athletics
-Description: Athletics club results plugin
+Description: Track individual athletic results and view records and stats for the entire club
 Author: Conor McCauley
-Version: 1.0
+Version: 1.0.0
 Author URI: http://www.conormccauley.me
 */
 
@@ -26,6 +26,13 @@ if(!class_exists('WP_Athletics')) {
 		public $wpa_records;
 		public $wpa_my_results;
 		public $wpa_db;
+
+		protected static $instance;
+
+		public static function init() {
+			is_null( self::$instance ) AND self::$instance = new self;
+			return self::$instance;
+		}
 
 		/**
 		 * Creates plugin globals and manages version number
@@ -96,6 +103,7 @@ if(!class_exists('WP_Athletics')) {
 			// installation and uninstallation hooks
 			register_activation_hook( __FILE__, array ( $this, 'activate') );
 			register_deactivation_hook( __FILE__, array ( $this, 'deactivate') );
+			register_uninstall_hook( __FILE__, array( 'WP_Athletics', 'uninstall' ) );
 
 			// short codes
 			add_shortcode( 'wpa-records', array( $this->wpa_records, 'records' ) );
@@ -120,14 +128,6 @@ if(!class_exists('WP_Athletics')) {
 
 			// install database and create/update tables
 			$this->wpa_db->create_db();
-
-			// create sample data if in debug mode
-			if( WP_DEBUG && (bool)$wpa_settings['create_demo_data_on_activate'] ) {
-				require_once 'includes/wp-athletics-demo-data.php';
-				$this->wpa_demo = new WP_Athletics_Demo( $this->wpa_db );
-
-				$this->wpa_demo->create_sample_data();
-			}
 		}
 
 		/**
@@ -135,6 +135,18 @@ if(!class_exists('WP_Athletics')) {
 		 **/
 		public function deactivate() {
 			// Do nothing
+		}
+
+		/**
+		 * Uninstalls the plugin
+		 */
+		public static function uninstall() {
+			if ( ! current_user_can( 'activate_plugins' ) )
+				return;
+
+			wpa_log('Uninstalling WPA Athletics...');
+			$wpa_db = new WP_Athletics_DB();
+			$wpa_db->uninstall_wpa();
 		}
 
 		public function register_scripts() {

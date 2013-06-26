@@ -171,16 +171,18 @@ var WPA = {
 	 */
 	displayUserProfileDialog: function(userId) {
 		WPA.currentUserProfileId = userId;
-		if(!WPA.userProfileDialog) {
+		var firstTimeLoad = !WPA.userProfileDialog;
+		if(firstTimeLoad) {
 			this.createUserProfileDatatables(userId);
 			
 			WPA.userProfileDialog = jQuery('#user-profile-dialog').dialog({
 				title: this.getProperty('user_profile_dialog_title'),
-				autoOpen: true,
+				autoOpen: false,
 				resizable: false,
 				modal: true,
-				width: jQuery(document).width()-100,
+				maxWidth: jQuery(document).width()-100,
 				height: 'auto',
+				width: 'auto',
 				maxHeight: jQuery(window).height()-100,
 			})
 		}
@@ -198,9 +200,9 @@ var WPA = {
 			else {
 				jQuery('#wpaUserProfilePhoto').addClass('wpa-profile-photo-default')
 			}
-			WPA.userProfileDialog.dialog("close");
-			WPA.userProfileDialog.dialog("open");
-			WPA.resultsTable.fnDraw(false);
+			if(!firstTimeLoad) {
+				WPA.resultsTable.fnDraw(false);
+			}
 		})
 		
 		// set up the period filter
@@ -243,7 +245,7 @@ var WPA = {
 				autoOpen: true,
 				resizable: false,
 				modal: true,
-				width: 600,
+				width: 'auto',
 				height: 'auto',
 				resizable: false,
 				maxHeight: 600
@@ -332,6 +334,14 @@ var WPA = {
 		WPA.resultsTable = jQuery('#results-table').dataTable(WPA.createTableConfig({
 			"bProcessing": true,
 			"bServerSide": true,
+			"fnDrawCallback": function() {
+				if(!WPA.userProfileDialog.dialog("isOpen") || WPA.currentUserProfileId != WPA.dialogProfileId) {
+					console.log('current ID: ' + WPA.currentUserProfileId + ' Display ID: ' + WPA.dialogProfileId);
+					WPA.userProfileDialog.dialog("close");
+					WPA.userProfileDialog.dialog("open");
+					WPA.dialogProfileId = WPA.currentUserProfileId;
+				}
+			},
 			"sAjaxSource": WPA.Ajax.url,
 			"sServerMethod": "POST",
 			"fnServerParams": function ( aoData ) {
@@ -366,7 +376,13 @@ var WPA = {
 			},{
 				"mData": "position",
 				"sWidth": "20px",
+				"sClass": "datatable-center",
 				"mRender": WPA.renderPositionColumn
+			},{
+				"mData": "club_rank",
+				"sWidth": "20px",
+				"bSortable": false,
+				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",
@@ -409,6 +425,11 @@ var WPA = {
 				"mRender" : WPA.renderAgeCategoryColumn
 			},{ 
 				"mData": "event_date"
+			},{
+				"mData": "club_rank",
+				"sWidth": "20px",
+				"bSortable": false,
+				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",

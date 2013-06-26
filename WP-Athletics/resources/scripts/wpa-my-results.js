@@ -268,11 +268,13 @@ WPA.MyResults = {
 			},{
 				"mData": "position",
 				"sWidth": "20px",
-				"mRender": WPA.renderPositionColumn
+				"mRender": WPA.renderPositionColumn,
+				"sClass": "datatable-center"
 			},{
 				"mData": "club_rank",
 				"sWidth": "20px",
-				"bSortable": false
+				"bSortable": false,
+				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",
@@ -323,7 +325,8 @@ WPA.MyResults = {
 			},{
 				"mData": "club_rank",
 				"sWidth": "20px",
-				"bSortable": false
+				"bSortable": false,
+				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
 				"sWidth": "16px",
