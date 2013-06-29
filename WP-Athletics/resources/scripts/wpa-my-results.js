@@ -15,9 +15,10 @@ WPA.MyResults = {
 			jQuery('#addResultEventCategory').combobox('setValue', '');
 			jQuery('#addResultEventSubType').combobox('setValue', '');
 			jQuery('#addResultDate').val('');
+			jQuery('#addResultAgeCategoryDisplay, #addResultAgeCategory').val('');
 			jQuery('#addResultEventLocation').val('');
 		}
-		jQuery('.ui-datepicker-trigger').toggle(enable);
+		jQuery('#addResultDialog .ui-datepicker-trigger').toggle(enable);
 		jQuery('.add-result-cancel-event').toggle(!enable);
 		jQuery('#addResultEventName').prop('disabled', !enable);
 		jQuery('#addResultDate').prop('disabled', !enable);
@@ -94,8 +95,16 @@ WPA.MyResults = {
 		jQuery('#addResultEventCategory').combobox('setValue', result.event_cat_id).combobox('removeCls', 'ui-state-error');
 		jQuery('#addResultEventSubType').combobox('setValue', result.sub_type_id).combobox('removeCls', 'ui-state-error');
 		
-		WPA.MyResults.triggerAddEventCategoryChange();
+		if(WPA.lastUsedEventCat != result.event_cat_id) {
+			WPA.MyResults.triggerAddEventCategoryChange();
+		}
 		WPA.MyResults.toggleAddResultEvent(false);
+		WPA.MyResults.setAddResultAgeCategory(function() {
+			WPA.MyResults.toggleAddResultEvent(true);
+		});
+		
+		
+		WPA.lastUsedEventCat = result.event_cat_id;
 	},
 	
 	/**
@@ -107,7 +116,8 @@ WPA.MyResults = {
 			WPA.MyResults.loadEventInfoCallback(_result);
 			var time = WPA.millisecondsToTime(result.time);
 			jQuery("#addResultId").val(result.id);
-			jQuery('#addResultAgeCategory').combobox('setValue', result.age_category).combobox('removeCls', 'ui-state-error');
+			jQuery('#addResultAgeCategoryDisplay').val(WPA.getAgeCategoryDescription(result.age_category));
+			jQuery('#addResultAgeCategory').val(result.age_category);
 			jQuery('#addResultPosition').val(result.position);
 			jQuery('#addResultGarminId').val(result.garmin_id);
 			jQuery('#addResultTimeHours').val(time.hours);
@@ -115,6 +125,24 @@ WPA.MyResults = {
 			jQuery('#addResultTimeSeconds').val(time.seconds);
 			jQuery('#addResultTimeMilliSeconds').val(time.milliseconds);
 		});
+	},
+	
+	/**
+	 * Triggers when the date field has changed on the "add result" screen, determines which age category the result falls into
+	 */
+	setAddResultAgeCategory: function(failCallbackFn) {
+	    var ageCat = WPA.calculateAthleteAgeCategory(jQuery('#addResultDate').val(), WPA.userDOB, true);
+	    if(ageCat && ageCat.id) {
+    		jQuery('#addResultAgeCategoryDisplay').val(ageCat.name);
+    		jQuery('#addResultAgeCategory').val(ageCat.id);
+	    }
+	    else {
+	    	WPA.alertError(WPA.getProperty('error_no_age_category'));
+	    	jQuery('#addResultDate').val('');
+	    	if(failCallbackFn) {
+	    		failCallbackFn();
+	    	}
+	    }
 	},
 	
 	/**
@@ -195,7 +223,8 @@ WPA.MyResults = {
 				position: jQuery('#addResultPosition').val(),
 				garminId: jQuery('#addResultGarminId').val(),
 				ageCategory: jQuery("#addResultAgeCategory").val(),
-				eventLocation: jQuery('#addResultEventLocation').val()
+				eventLocation: jQuery('#addResultEventLocation').val(),
+				gender: WPA.userGender
 			}, function() {
 				// success function - load the results and close dialog
 				WPA.MyResults.resetAddResultForm();
@@ -216,9 +245,6 @@ WPA.MyResults = {
 		jQuery('#addResultDialog form input,select').each(function() {
 			jQuery(this).val('');
 		});
-		
-		// set age category
-		jQuery("#addResultAgeCategory").val(WPA.currentAgeCategory).combobox('setValue', WPA.currentAgeCategory);
 	},
 	
 	/** 
@@ -274,6 +300,7 @@ WPA.MyResults = {
 				"mData": "club_rank",
 				"sWidth": "20px",
 				"bSortable": false,
+				"mRender": WPA.renderClubRankColumn,
 				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
@@ -326,6 +353,7 @@ WPA.MyResults = {
 				"mData": "club_rank",
 				"sWidth": "20px",
 				"bSortable": false,
+				"mRender": WPA.renderClubRankColumn,
 				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",

@@ -47,29 +47,26 @@ if(!class_exists('WP_Athletics_Demo')) {
 
 			$female_names = array('Melanie', 'Jill', 'Fidelma', 'Roya', 'Stella', 'Pippa', 'Rhona', 'Gillian', 'Jenny', 'Melissa', 'Jordan', 'Ann', 'Belinda', 'Mary', 'Sinead', 'Eileen', 'Rosy', 'Jackie');
 			$male_names = array('Harry', 'Jack', 'John', 'Garry', 'Jason', 'Jonathan', 'Chris', 'Steve', 'Tom', 'James', 'Jerry', 'Rob', 'Conor', 'Barry', 'Evan', 'Ronan', 'Larry', 'Rory', 'Bryan', 'Colin', 'Percy', 'Winston');
-			$both_names = array_merge( $male_names, $female_names );
 			$surnames = array('Kennedy', 'Scott', 'McDonald', 'Price', 'Cooper', 'Dildo', 'Dickhead', 'McCauley', 'Lennon', 'Lauraeus', 'Kelly', 'Murphy', 'Perry', 'Jackson', 'McIlroy', 'Connors', 'Heuston', 'Simpson', 'Fielding');
 
-			$age_cats = $this -> get_age_categories();
+			$gender = $this -> trueOrFalse() ? 'M' : 'F';
+
+			$age_cats = array_keys($this -> get_age_categories());
+			$age_cat_idx = array_rand( $age_cats );
+			$age_cat = $age_cats[$age_cat_idx];
 
 			$first_name;
 
-			$age_cat_random = array_rand( $age_cats );
-			$age_cat = $age_cats[$age_cat_random]['id'];
-
-			if(strstr ( $age_cat, 'M' ) ) {
+			if($gender ==  'M' ) {
 				$first_name = $male_names[array_rand( $male_names )];
 			}
-			else if(strstr ( $age_cat, 'F' ) ) {
-				$first_name = $female_names[array_rand( $female_names )];
-			}
 			else {
-				$first_name = $both_names[array_rand( $both_names )];
+				$first_name = $female_names[array_rand( $female_names )];
 			}
 
 			$name = $first_name . ' ' . $surnames[array_rand( $surnames )];
 
-			return array( 'name' => $name, 'age_category' => $age_cat );
+			return array( 'name' => $name, 'age_category' => $age_cat, 'gender' => $gender );
 		}
 
 		/**
@@ -89,6 +86,7 @@ if(!class_exists('WP_Athletics_Demo')) {
 					'ageCategory' => $user['age_cat'],
 					'position' => $position,
 					'garminId' => '',
+					'gender' => $user['gender'],
 					'time' => $time
 				);
 				$this -> wpa_db -> update_event( $data );
@@ -233,7 +231,7 @@ if(!class_exists('WP_Athletics_Demo')) {
 				return rand( 8400000,18000000);
 			}
 			else if( $event == '50k') {
-				return rand( 1080000,22000000 );
+				return rand( 18000000,22000000 );
 			}
 			else return rand( 900000,2680000 );
 
@@ -262,7 +260,8 @@ if(!class_exists('WP_Athletics_Demo')) {
 					$this->wpa_db->update_user_display_name( $user_id, $random_user['name'] );
 					array_push( $this->users, array(
 							'user_id' => $user_id,
-							'age_cat' => $random_user['age_category']
+							'age_cat' => $random_user['age_category'],
+							'gender' => $random_user['gender']
 						)
 					);
 					//wpa_log('user ' . $random_user['name'] . ' with age cat ' . $random_user['age_category'] . ' created');
@@ -270,12 +269,6 @@ if(!class_exists('WP_Athletics_Demo')) {
 					$random_password = __('User already exists.  Password inherited.');
 				}
 			}
-
-			// add the admin user also
-			array_push( $this->users, array(
-				'user_id' => 1,
-				'age_cat' => 'M'
-			));
 		}
 	}
 }

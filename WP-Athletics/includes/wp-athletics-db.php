@@ -75,13 +75,14 @@ if(!class_exists('WP_Athletics_DB')) {
 				garmin_id varchar(100),
 				position integer(4),
 				age_category varchar(4),
+				gender varchar(1),
 				UNIQUE KEY id (id)
 				);";
 
 				require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 				dbDelta( $sql );
 
-				add_option( "wp-athletics_db_version", WPA_DB_VERSION );
+				update_option( "wp-athletics_db_version", WPA_DB_VERSION );
 
 				wpa_log('installed version is ' . $installed_ver);
 
@@ -241,7 +242,7 @@ if(!class_exists('WP_Athletics_DB')) {
 
 			$results = $wpdb->get_results(
 				"
-				SELECT r.id, r.time, r.age_category, r.garmin_id, r.position, e.id as event_id, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
+				SELECT r.id, r.time, r.age_category, r.gender, r.garmin_id, r.position, e.id as event_id, e.name as event_name, e.location as event_location, e.sub_type_id AS event_sub_type_id,
 				date_format(e.date,'" . WPA_DATE_FORMAT . "') as event_date, ec.name as category, ec.time_format, e.event_cat_id as event_cat
 				FROM $this->RESULT_TABLE r
 				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
@@ -252,7 +253,7 @@ if(!class_exists('WP_Athletics_DB')) {
 
 			// loop each result and find the overall club rank for the age cat and event
 			foreach ( $results as $result ) {
-				$result->club_rank = $this->get_result_club_rank( $result->id, $result->age_category, $result->event_cat);
+				$result->club_rank = $this->get_result_club_rank( $result->id, $result->age_category, $result->gender, $result->event_cat);
 			}
 
 			return array(
@@ -266,7 +267,7 @@ if(!class_exists('WP_Athletics_DB')) {
 		/**
 		 * Returns the overall club rank for a specified result, filtered by event category (e.g 1500m) and age category (e.g M)
 		 */
-		public function get_result_club_rank( $result_id, $age_category, $event_cat_id ) {
+		public function get_result_club_rank( $result_id, $age_category, $gender, $event_cat_id ) {
 			global $wpdb;
 
 			return $wpdb->get_var( "
@@ -275,7 +276,7 @@ if(!class_exists('WP_Athletics_DB')) {
 					LEFT JOIN wp_wpa_event e1 ON r1.event_id = e1.id
 					LEFT JOIN wp_wpa_event_cat ec1 ON e1.event_cat_id = ec1.id
 					JOIN (SELECT @curRow := 0) crow
-					WHERE r1.age_category = '$age_category' AND e1.event_cat_id = $event_cat_id
+					WHERE r1.age_category = '$age_category' AND r1.gender = '$gender' AND e1.event_cat_id = $event_cat_id
 					ORDER BY r1.time) rank_table
 				WHERE rank_table.id = $result_id;
 			" );
@@ -292,6 +293,7 @@ if(!class_exists('WP_Athletics_DB')) {
 
 			$user_id = $_POST['userId'];
 			$age_category = $_POST['ageCategory'];
+			$gender = $_POST['gender'];
 			$event_cat_id = $_POST['eventCategoryId'];
 			$event_sub_type_id = $_POST['eventSubTypeId'];
 			$date = $_POST['eventDate'];
@@ -322,13 +324,19 @@ if(!class_exists('WP_Athletics_DB')) {
 				$where = $where . "age_category = '" . $age_category . "'";
 			}
 
+			if(isset( $gender ) && $gender != '' ) {
+				wpa_log('gender is ' . $gender);
+				$where = $where . ($where == '' ? '' : ' AND ');
+				$where = $where . "gender = '" . $gender . "'";
+			}
+
 			if(isset( $event_sub_type_id ) && $event_sub_type_id != 'all' && $event_sub_type_id != '' ) {
 				wpa_log('sub type id is ' . $event_sub_type_id);
 				$where = $where . ($where == '' ? '' : ' AND ');
 				$where = $where . "sub_type_id = '" . $event_sub_type_id . "'";
 			}
 
-			if(isset( $event_cat_id) && $event_cat_id != 'all' && $event_cat_id != '' ) {
+			if(isset( $event_cat_id ) && $event_cat_id != 'all' && $event_cat_id != '' ) {
 				wpa_log('event cat is ' . $event_cat_id);
 				$where = $where . ($where == '' ? '' : ' AND ');
 				$where = $where . 'event_cat_id = ' . $event_cat_id;
@@ -343,10 +351,10 @@ if(!class_exists('WP_Athletics_DB')) {
 			}
 
 			$results = $wpdb->get_results(
-				"SELECT $rank d.id, d.athlete_name, d.age_category, d.time, d.user_id, date_format(d.event_date,'" . WPA_DATE_FORMAT . "') as event_date, d.event_cat_id, d.event_name,
+				"SELECT $rank d.id, d.athlete_name, d.gender, d.age_category, d.time, d.user_id, date_format(d.event_date,'" . WPA_DATE_FORMAT . "') as event_date, d.event_cat_id, d.event_name,
 				d.event_location, d.event_sub_type_id, d.event_id, ec.name as category, ec.time_format, d.garmin_id from $this->EVENT_CAT_TABLE ec
 				JOIN (
-				SELECT r.id, r.age_category, r.time AS time, r.garmin_id, r.user_id, ec1.id AS event_cat_id, e.name AS event_name, e.location as event_location,
+				SELECT r.id, r.gender, r.age_category, r.time AS time, r.garmin_id, r.user_id, ec1.id AS event_cat_id, e.name AS event_name, e.location as event_location,
 				e.sub_type_id AS event_sub_type_id, e.id as event_id, e.date AS event_date," . $selectDisplayName . " from $this->RESULT_TABLE r
 				LEFT JOIN $this->EVENT_TABLE e ON r.event_id = e.id
 				LEFT JOIN $this->EVENT_CAT_TABLE ec1 ON e.event_cat_id = ec1.id " . $where . " ORDER BY $orderBy)
@@ -355,7 +363,7 @@ if(!class_exists('WP_Athletics_DB')) {
 
 			// loop each result and find the overall club rank for the age cat and event
 			foreach ( $results as $result ) {
-				$result->club_rank = $this->get_result_club_rank( $result->id, $result->age_category, $result->event_cat_id );
+				$result->club_rank = $this->get_result_club_rank( $result->id, $result->age_category, $result->gender, $result->event_cat_id );
 			}
 
 			return $results;
@@ -481,15 +489,16 @@ if(!class_exists('WP_Athletics_DB')) {
 				$success = $wpdb->query( $wpdb->prepare(
 					"
 					INSERT INTO $this->RESULT_TABLE
-					( user_id, event_id, time, garmin_id, position, age_category )
-					VALUES ( %d, %d, %d, %s, %d, %s )
+					( user_id, event_id, time, garmin_id, position, age_category, gender )
+					VALUES ( %d, %d, %d, %s, %d, %s, %s )
 					",
 					$data['userId'],
 					$data['eventId'],
 					$data['time'],
 					$data['garminId'],
 					$data['position'],
-					$data['ageCategory']
+					$data['ageCategory'],
+					$data['gender']
 				) );
 			}
 			// update the event result

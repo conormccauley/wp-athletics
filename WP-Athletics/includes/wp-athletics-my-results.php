@@ -63,23 +63,10 @@ if(!class_exists('WP_Athletics_My_Results')) {
 			if( $this->is_valid_ajax( $this->nonce ) ) {
 				global $current_user;
 
+				$_POST['userId'] = $current_user->ID;
+
 				// perform the insert or update
-				$result = $this->wpa_db->update_event(
-					array(
-						'userId' => $current_user->ID,
-						'resultId' => $_POST['resultId'],
-						'time' => $_POST['time'],
-						'eventId' => $_POST['eventId'],
-						'eventDate' => $_POST['eventDate'],
-						'eventName' => $_POST['eventName'],
-						'eventCategory' => $_POST['eventCategory'],
-						'position' => $_POST['position'],
-						'garminId' => $_POST['garminId'],
-						'ageCategory' => $_POST['ageCategory'],
-						'eventSubType' => $_POST['eventSubType'],
-						'eventLocation' => $_POST['eventLocation']
-					)
-				);
+				$result = $this->wpa_db->update_event($_POST);
 
 				// return as json
 				wp_send_json($result);
@@ -140,13 +127,18 @@ if(!class_exists('WP_Athletics_My_Results')) {
 			if( $this->is_valid_ajax( $this->nonce ) ) {
 				global $current_user;
 
-				$age_cat = $_POST['ageCategory'];
+				$gender = $_POST['gender'];
+				$dob = $_POST['dob'];
 				$fave_event = $_POST['faveEvent'];
 				$display_name = $_POST['displayName'];
 
-				if(isset( $age_cat ) ) {
-					wpa_log('updating age category');
-					update_user_meta( $current_user->ID, 'wp-athletics_age_category', $age_cat );
+				if(isset( $gender ) ) {
+					wpa_log('updating gender');
+					update_user_meta( $current_user->ID, 'wp-athletics_gender', $gender );
+				}
+				if(isset( $dob ) ) {
+					wpa_log('updating dob');
+					update_user_meta( $current_user->ID, 'wp-athletics_dob', $dob );
 				}
 				if(isset( $fave_event ) ) {
 					wpa_log('updating fave event');
@@ -165,6 +157,9 @@ if(!class_exists('WP_Athletics_My_Results')) {
 			die();
 		}
 
+		/**
+		 * A slight hack, intercepts the query for attachments and filters so users can only see their own profile photos when selecting a new one.
+		 */
 		public function custom_query_attachments($where) {
 			global $current_user;
 			if(strpos($where, "wp_posts.post_type = 'attachment'")) {
@@ -174,7 +169,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		}
 
 		/**
-		 * [AJAX] returns number of results recorded for current user
+		 * Returns number of results recorded for current user
 		 */
 		public function get_my_results_recorded() {
 			global $current_user;
@@ -198,18 +193,14 @@ if(!class_exists('WP_Athletics_My_Results')) {
 				wp_enqueue_script( 'wpa-my-results' );
 
 				global $current_user;
+				global $wpa_settings;
 				$nonce = wp_create_nonce( $this->nonce );
 
 				// profile info
-				$user_age_cat = get_user_meta( $current_user->ID, 'wp-athletics_age_category', true );
+				$user_gender = get_user_meta( $current_user->ID, 'wp-athletics_gender', true );
+				$user_dob = get_user_meta( $current_user->ID, 'wp-athletics_dob', true );
 				$user_fave_event_cat = get_user_meta( $current_user->ID, 'wp-athletics_fave_event_category', true );
 				$user_display_name = $this->wpa_db->get_user_display_name( $current_user->ID );
-				$user_oldest_result_year = $this->wpa_db->get_oldest_result_year( $current_user->ID );
-
-				// retrieve arrays for select elements
-				$age_cats = $this->get_age_categories();
-				$sub_types = $this->get_event_sub_type();
-				$event_cats = $this->wpa_db->get_event_categories();
 			?>
 				<script type='text/javascript'>
 					jQuery(document).ready(function() {
@@ -219,8 +210,32 @@ if(!class_exists('WP_Athletics_My_Results')) {
 
 							WPA.MyResults.createMyResultsTables();
 
+							WPA.userDOB = '<?php echo $user_dob; ?>';
+							WPA.userGender = '<?php echo $user_gender; ?>';
+							WPA.userID = '<?php echo $current_user->ID; ?>';
+
+							jQuery.datepicker.setDefaults( jQuery.datepicker.regional[ '<?php echo strtolower(get_option( 'wp-athletics_language', 'en') ); ?>' ] );
+
 							// common setup function
 							WPA.setupCommon();
+
+							// setup filters
+							WPA.setupFilters(WPA.userID, WPA.MyResults.myResultsTable, WPA.MyResults.getPersonalBests, WPA.MyResults.doEventNameFilter, {
+								event: 6,
+								type: 5,
+								age: 7,
+								period: 2
+							});
+
+							// create event category selection lists
+							jQuery(WPA.globals.eventCategories).each(function(index, item) {
+								jQuery("#addResultEventCategory, #myProfileFaveEvent").append('<option time-format="' + item.time_format + '" value="' + item.id + '">' + item.name + '</option>');
+							});
+
+							// create event sub type selection list
+							jQuery(WPA.globals.eventTypes).each(function(index, item) {
+								jQuery("#addResultEventSubType").append('<option value="' + item.id + '">' + item.description + '</option>');
+							});
 
 							// bind blur event to display name select field
 							// detect enter key press on the display name field
@@ -266,12 +281,12 @@ if(!class_exists('WP_Athletics_My_Results')) {
 								width: 460,
 								modal: true,
 								buttons: [{
-									text: "Submit",
+									text: WPA.getProperty('submit'),
 							      	click: function() {
 							      		WPA.MyResults.submitResult();
 							      	}
 							    },{
-								    text: 'Cancel',
+								    text: WPA.getProperty('cancel'),
 								    click: function() {
 								    	jQuery(this).dialog("close");
 								    }
@@ -279,19 +294,49 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							  ]
 							});
 
-							// set date picker element
+							// set 'add result' date picker element
 							jQuery('#addResultDate').datepicker({
 						      showOn: "both",
 						      buttonImage: "<?php echo WPA_PLUGIN_URL ?>/resources/images/date_picker.png",
 						      buttonImageOnly: true,
-						      dateFormat: 'dd M yy',
+						      changeMonth: true,
+						      changeYear: true,
+						      maxDate: 0,
+						      dateFormat: WPA.Settings['display_date_format'],
+						      yearRange: 'c-100:c',
 						      altFormat: 'yy-mm-dd',
 						      altField: '#addResultEventDate'
 						    }).change(function() {
-							    if(jQuery(this).val() != '') {
+							    if(jQuery(this).val() != '' && WPA.userDOB != '') {
 							    	jQuery(this).removeClass('ui-state-error');
+									WPA.MyResults.setAddResultAgeCategory();
 							    }
 						    });
+
+							// set 'my profile' dob date picker element
+							jQuery('#myProfileDOB').datepicker({
+						      showOn: "both",
+						      buttonImage: "<?php echo WPA_PLUGIN_URL ?>/resources/images/date_picker.png",
+						      buttonImageOnly: true,
+						      changeMonth: true,
+						      changeYear: true,
+						      maxDate: 0,
+						      dateFormat: WPA.Settings['display_date_format'],
+						      yearRange: 'c-100:c'
+						    }).change(function(event) {
+							    if(jQuery(this).val() != '') {
+							    	WPA.userDOB = jQuery(this).val();
+									jQuery('#myProfileAgeClass').val(WPA.calculateCurrentAthleteAgeCategory(WPA.userDOB).name);
+							    	WPA.Ajax.saveProfileData({
+										dob: WPA.userDOB
+									}, jQuery(event.currentTarget));
+							    }
+						    }).datepicker('setDate', WPA.userDOB);
+
+						    // set age category
+						    if(WPA.userDOB != '') {
+								jQuery('#myProfileAgeClass').val(WPA.calculateCurrentAthleteAgeCategory(WPA.userDOB).name);
+						    }
 
 							jQuery('#addResultEventLocation').change(function() {
 							    if(jQuery(this).val() != '') {
@@ -325,10 +370,15 @@ if(!class_exists('WP_Athletics_My_Results')) {
 					              primary: 'ui-icon-circle-plus'
 					            }
 							}).click(function() {
-								jQuery("#addResultId").val('');
-								jQuery("#addResultDialog").dialog("option", "title", WPA.getProperty('add_result_title'));
-								jQuery("#addResultDialog").dialog("open");
-								WPA.MyResults.resetAddResultForm();
+								if(WPA.userGender != '' && WPA.userDOB != '') {
+									jQuery("#addResultId").val('');
+									jQuery("#addResultDialog").dialog("option", "title", WPA.getProperty('add_result_title'));
+									jQuery("#addResultDialog").dialog("open");
+									WPA.MyResults.resetAddResultForm();
+								}
+								else {
+									WPA.alertError('<?php echo $this->get_property('error_add_result_no_gender_dob'); ?>');
+								}
 							});
 
 							// load PB tab
@@ -343,28 +393,16 @@ if(!class_exists('WP_Athletics_My_Results')) {
 								}
 							}).combobox('setValue', '<?php echo $user_fave_event_cat ?>');
 
-							// age class
-							WPA.currentAgeCategory = '<?php echo $user_age_cat ?>';
-							jQuery("#myProfileAgeClass").combobox({
+							// gender
+							jQuery("#myProfileGender").combobox({
 								select: function(event, ui) {
-									var value = jQuery(this).val();
-
-									jQuery("#addResultAgeCategory").val(value).combobox('setValue', value);
-
-									WPA.currentAgeCategory = value;
+									WPA.userGender = jQuery(this).val();
 
 									WPA.Ajax.saveProfileData({
-										ageCategory: value
+										gender: WPA.userGender
 									}, jQuery(event.currentTarget));
 								}
-							}).combobox('setValue', WPA.currentAgeCategory);
-
-							// add result age cat combo
-							jQuery("#addResultAgeCategory").combobox({
-								select: function(event, ui) {
-									jQuery(this).combobox('removeCls', 'ui-state-error');
-								}
-							});
+							}).combobox('setValue', WPA.userGender);
 
 							// add result event combo
 							jQuery("#addResultEventCategory").combobox({
@@ -380,48 +418,6 @@ if(!class_exists('WP_Athletics_My_Results')) {
 									jQuery(this).combobox('removeCls', 'ui-state-error');
 								}
 							});
-
-							// filter event combo
-							jQuery("#filterEvent").combobox({
-								select: function(event, ui) {
-									WPA.filterEvent = ui.item.value;
-									WPA.MyResults.myResultsTable.fnFilter( ui.item.value, 6 );
-								},
-								selectClass: 'filter-highlight'
-							});
-
-							// filter period combo
-							jQuery("#filterPeriod").combobox({
-								select: function(event, ui) {
-									WPA.filterPeriod = ui.item.value;
-									WPA.MyResults.myResultsTable.fnFilter( ui.item.value, 2 );
-									WPA.MyResults.getPersonalBests();
-								},
-								selectClass: 'filter-highlight'
-							});
-
-							// filter type combo
-							jQuery("#filterType").combobox({
-								select: function(event, ui) {
-									WPA.filterType = ui.item.value;
-									WPA.MyResults.myResultsTable.fnFilter( ui.item.value, 5 );
-									WPA.MyResults.getPersonalBests();
-								},
-								selectClass: 'filter-highlight'
-							});
-
-							// filter age combo
-							jQuery("#filterAge").combobox({
-								select: function(event, ui) {
-									WPA.filterAge = ui.item.value;
-									WPA.MyResults.myResultsTable.fnFilter( ui.item.value, 7 );
-									WPA.MyResults.getPersonalBests();
-								},
-								selectClass: 'filter-highlight'
-							});
-
-							// filter event name
-							WPA.setupInputFilter('filterEventName', 'filterEventNameCancel', WPA.MyResults.doEventNameFilter);
 
 							// set profile photo
 							WPA.MyResults.loadProfilePhoto();
@@ -474,47 +470,49 @@ if(!class_exists('WP_Athletics_My_Results')) {
 						<!-- ATHLETE INFO -->
 						<div class="wpa-profile-info">
 
-							<!-- DISPLAY NAME -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_display_name_label'); ?>:</label>
-								<input type="text" id="myProfileDisplayName" size="20" maxlength="30" class="ui-widget ui-widget-content ui-state-default ui-corner-all" value="<?php echo $user_display_name; ?>"/>
+							<div class="wpa-profile-info-fieldset">
+
+								<!-- DISPLAY NAME -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_display_name_label'); ?>:</label>
+									<input type="text" id="myProfileDisplayName" size="20" maxlength="30" class="ui-widget ui-widget-content ui-state-default ui-corner-all" value="<?php echo $user_display_name; ?>"/>
+								</div>
+
+								<!-- FAVOURITE EVENT -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_fave_event'); ?>:</label>
+									<select id="myProfileFaveEvent">
+										<option value=""><?php echo $this->get_property('my_profile_select_fave_event'); ?></option>
+									</select>
+								</div>
 							</div>
 
-							<!-- AGE CLASS -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_age_class'); ?>:</label>
-								<select id="myProfileAgeClass">
-									<option value=""><?php echo $this->get_property('my_profile_select_age_class'); ?></option>
-									<?php
-									foreach ( $age_cats as $age_cat ) {
-									?>
-										<option value="<?php echo $age_cat['id']; ?>"><?php echo $age_cat['description']; ?></option>
-									<?php
-									}
-									?>
-								</select>
+							<div class="wpa-profile-info-fieldset">
+
+								<!-- DATE OF BIRTH -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_dob'); ?>:</label>
+									<span style="position: relative; top:-2px"><input class="ui-widget ui-widget-content ui-state-default ui-corner-all" size="30" type="text" id="myProfileDOB"/></span>
+								</div>
+
+								<!-- GENDER -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_gender'); ?>:</label>
+									<select id="myProfileGender">
+										<option value="M"><?php echo $this->get_property('gender_M'); ?></option>
+										<option value="F"><?php echo $this->get_property('gender_F'); ?></option>
+									</select>
+								</div>
+
+								<!--  AGE CLASS -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_age_class'); ?>:</label>
+									<input type="text" disabled="disabled" id="myProfileAgeClass" size="20" class="ui-widget ui-widget-content ui-state-default ui-corner-all"/>
+								</div>
 							</div>
 
-							<!-- FAVOURITE EVENT -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_fave_event'); ?>:</label>
-								<select id="myProfileFaveEvent">
-									<option value=""><?php echo $this->get_property('my_profile_select_fave_event'); ?></option>
-									<?php
-									foreach ( $event_cats as $event_cat ) {
-									?>
-										<option value="<?php echo $event_cat['id']; ?>"><?php echo $event_cat['name']; ?></option>
-									<?php
-									}
-									?>
-								</select>
-							</div>
+							<br style="clear:both;"/>
 
-							<!-- RESULTS RECORDED -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_results_recorded'); ?>:</label>
-								<span><?php echo $this->get_my_results_recorded(); ?></span>
-							</div>
 						</div>
 
 						<div id="wpa-profile-right">
@@ -535,13 +533,6 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							<div class="filter-ignore-for-pb">
 								<select id="filterEvent">
 									<option value="all" selected="selected"><?php echo $this->get_property('filter_events_option_all'); ?></option>
-									<?php
-									foreach ( $event_cats as $event_cat ) {
-									?>
-										<option value="<?php echo $event_cat['id']; ?>"><?php echo $event_cat['name']; ?></option>
-									<?php
-									}
-									?>
 								</select>
 							</div>
 
@@ -549,37 +540,14 @@ if(!class_exists('WP_Athletics_My_Results')) {
 								<option value="all" selected="selected"><?php echo $this->get_property('filter_period_option_all'); ?></option>
 								<option value="this_month"><?php echo $this->get_property('filter_period_option_this_month'); ?></option>
 								<option value="this_year"><?php echo $this->get_property('filter_period_option_this_year'); ?></option>
-								<?php
-								if($user_oldest_result_year) {
-									for($year = date('Y')-1; $year >= $user_oldest_result_year; $year--) {
-								?>
-										<option value="year:<?php echo $year;?>"><?php echo $year;?></option>
-								<?php
-									}
-								}
-								?>
 							</select>
 
 							<select id="filterType">
 								<option value="all" selected="selected"><?php echo $this->get_property('filter_type_option_all'); ?></option>
-								<?php
-								foreach ( $sub_types as $sub_type ) {
-								?>
-									<option value="<?php echo $sub_type['id']; ?>"><?php echo $sub_type['description']; ?></option>
-								<?php
-								}
-								?>
 							</select>
 
 							<select id="filterAge">
 								<option value="all" selected="selected"><?php echo $this->get_property('filter_age_option_all'); ?></option>
-								<?php
-								foreach ( $age_cats as $age_cat ) {
-								?>
-									<option value="<?php echo $age_cat['id']; ?>"><?php echo $age_cat['description']; ?></option>
-								<?php
-								}
-								?>
 							</select>
 
 							<div class="filter-ignore-for-pb">
@@ -653,21 +621,14 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							<input type="hidden" id="addResultEventDate" value=""/>
 							<div class="wpa-add-result-field">
 								<label class="required"><?php echo $this->get_property('add_result_event_name'); ?>:</label>
-								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="35" maxlength=100 type="text" id="addResultEventName" />
+								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="30" maxlength=100 type="text" id="addResultEventName" />
 								<span class="add-result-help" title="<?php echo $this->get_property('help_add_result_event_name'); ?>"></span>
 								<span style="display:none;" title="<?php echo $this->get_property('help_add_result_cancel_event'); ?>" class="add-result-cancel-event"></span>
 							</div>
 							<div class="wpa-add-result-field">
 								<label class="required"><?php echo $this->get_property('add_result_event_category'); ?>:</label>
 								<select class="add-result-required" id="addResultEventCategory">
-									<option value="" selected="selected"><?php echo $this->get_property('add_result_select_event'); ?></option>
-									<?php
-									foreach ( $event_cats as $event_cat ) {
-									?>
-										<option time-format="<?php echo $event_cat['time_format']; ?>" value="<?php echo $event_cat['id']; ?>"><?php echo $event_cat['name']; ?></option>
-									<?php
-									}
-									?>
+									<option value="" selected="selected"></option>
 								</select>
 							</div>
 							<div class="wpa-add-result-field">
@@ -677,14 +638,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							<div class="wpa-add-result-field">
 								<label class="required"><?php echo $this->get_property('add_result_event_sub_type'); ?>:</label>
 								<select class="add-result-required" id="addResultEventSubType">
-									<option value="" selected="selected"><?php echo $this->get_property('my_profile_select_sub_type'); ?></option>
-									<?php
-									foreach ( $sub_types as $sub_type ) {
-									?>
-										<option value="<?php echo $sub_type['id']; ?>"><?php echo $sub_type['description']; ?></option>
-									<?php
-									}
-									?>
+									<option value="" selected="selected"></option>
 								</select>
 							</div>
 							<div class="wpa-add-result-field">
@@ -693,16 +647,8 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							</div>
 							<div class="wpa-add-result-field">
 								<label class="required"><?php echo $this->get_property('add_result_age_class'); ?>:</label>
-								<select class="add-result-required" id="addResultAgeCategory">
-									<option value="" <?php echo ('' == $user_age_cat ? 'selected="selected"' : ''); ?>><?php echo $this->get_property('my_profile_select_age_class'); ?></option>
-									<?php
-									foreach ( $age_cats as $age_cat ) {
-									?>
-										<option value="<?php echo $age_cat['id']; ?>" <?php echo ($age_cat['id'] == $user_age_cat ? 'selected="selected"' : ''); ?>><?php echo $age_cat['description']; ?></option>
-									<?php
-									}
-									?>
-								</select>
+								<input type="hidden" id="addResultAgeCategory" value=""/>
+								<input type="text" class="ui-widget ui-widget-content ui-state-default ui-corner-all" disabled="disabled" readonly="readonly" size="30" id="addResultAgeCategoryDisplay"/>
 							</div>
 							<div style="display:none;" time-format="h" class="wpa-add-result-field">
 								<label class="required"><?php echo $this->get_property('add_result_event_time_hours'); ?>:</label>

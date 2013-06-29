@@ -121,12 +121,12 @@ var WPA = {
 	/**
 	 * Returns age category description object based on ID
 	 */
-	getAgeCategoryDescription: function(id) {
+	getAgeCategoryDescription: function(id) {		
 		var result = '';
 		if(WPA.globals.ageCategories) {
-			jQuery.each(WPA.globals.ageCategories, function(index,obj) {
-				if(obj.id == id) {
-					result = obj.description;
+			jQuery.each(WPA.globals.ageCategories, function(cat,detail) {
+				if(cat == id) {
+					result = detail.name;
 					return false;
 				}
 			});
@@ -193,7 +193,15 @@ var WPA = {
 		WPA.Ajax.getUserProfile(userId, function(result) {
 			jQuery('#wpa-profile-name').html(result.name);
 			jQuery('#wpa-profile-fave-event').html(WPA.getEventCategoryDescription(result.faveEvent));
-			jQuery('#wpa-profile-age-class').html(WPA.getAgeCategoryDescription(result.ageCategory));
+			
+			if(result.dob != '' && result.gender != '') {
+				jQuery('#wpa-profile-dob').html(result.dob);
+				var ageCat = WPA.calculateCurrentAthleteAgeCategory(result.dob);
+				if(ageCat) {
+					jQuery('#wpa-profile-age-class').html(WPA.getProperty('gender_' + result.gender) + ' ' + ageCat.name);
+				}
+			}
+			
 			if(result.photo) {
 				jQuery('#wpaUserProfilePhoto').removeClass('wpa-profile-photo-default').css('background-image', 'url(' + result.photo + ')');
 			}
@@ -382,6 +390,7 @@ var WPA = {
 				"mData": "club_rank",
 				"sWidth": "20px",
 				"bSortable": false,
+				"mRender": WPA.renderClubRankColumn,
 				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
@@ -429,6 +438,7 @@ var WPA = {
 				"mData": "club_rank",
 				"sWidth": "20px",
 				"bSortable": false,
+				"mRender": WPA.renderClubRankColumn,
 				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
@@ -497,7 +507,7 @@ var WPA = {
 	/**
 	 * configures the filters for 'records' or 'my results' page
 	 */
-	setupFilters: function(userId, table, personalBestsCallFn, eventNameFilter, columnIndexes) {
+	setupFilters: function(userId, table, personalBestsCallFn, eventNameFilterFn, columnIndexes) {
 		// add items to combos
 		jQuery(WPA.globals.eventCategories).each(function(index, item) {
 			jQuery("#filterEvent").append('<option value="' + item.id + '">' + item.name + '</option>');
@@ -507,8 +517,8 @@ var WPA = {
 			jQuery("#filterType").append('<option value="' + item.id + '">' + item.description + '</option>');
 		});
 		
-		jQuery(WPA.globals.ageCategories).each(function(index, item) {
-			jQuery("#filterAge").append('<option value="' + item.id + '">' + item.description + '</option>');
+		jQuery.each(WPA.globals.ageCategories, function(cat, item) {
+			jQuery("#filterAge").append('<option value="' + cat + '">' + item.name + '</option>');
 		});
 		
 		WPA.filterPeriod = undefined;
@@ -570,8 +580,8 @@ var WPA = {
 		});
 		
 		// filter event name
-		if(eventNameFilter) {
-			WPA.setupInputFilter('filterEventName', 'filterEventNameCancel', eventNameFilter);
+		if(eventNameFilterFn) {
+			WPA.setupInputFilter('filterEventName', 'filterEventNameCancel', eventNameFilterFn);
 		}
 	},
 	
@@ -588,8 +598,8 @@ var WPA = {
 			jQuery("#profileFilterType").append('<option value="' + item.id + '">' + item.description + '</option>');
 		});
 		
-		jQuery(WPA.globals.ageCategories).each(function(index, item) {
-			jQuery("#profileFilterAge").append('<option value="' + item.id + '">' + item.description + '</option>');
+		jQuery.each(WPA.globals.ageCategories, function(cat, item) {
+			jQuery("#profileFilterAge").append('<option value="' + cat + '">' + item.name + '</option>');
 		});
 		
 		// filter event combo
@@ -714,6 +724,147 @@ var WPA = {
 		}
 	},
 	
+	/**
+	 * Determines what category an athlete runs in based on a a date and their date of birth
+	 */
+	calculateAthleteAgeCategory: function(date, dob, doParse) {	
+		if(doParse) {
+			dob = jQuery.datepicker.parseDate( WPA.Settings['display_date_format'],  dob );
+			date = jQuery.datepicker.parseDate( WPA.Settings['display_date_format'],  date );
+		}
+		
+		var age = this.howOld(date, dob);
+		var ageCat = { name: '' };
+		
+		// loops age classes and determine which category applies
+		jQuery.each(WPA.globals.ageCategories, function(cat, details) {
+			if(age >= parseInt(details.from) && age < parseInt(details.to)) {
+				details.id = cat;
+				ageCat = details;
+				return false;
+			}
+		});
+		
+		return ageCat;
+	},
+	
+	/**
+	 * Determines what category an athlete runs in based on their date of birth
+	 */
+	calculateCurrentAthleteAgeCategory: function(dob) {
+		if(dob != '') {
+			dob = jQuery.datepicker.parseDate( WPA.Settings['display_date_format'],  dob );
+			return this.calculateAthleteAgeCategory(new Date(), dob);
+		}
+		return null;
+	},
+
+	/**
+	 * Calculates athlete age in years at a given date
+	 */
+	howOld: function(varAsOfDate, varBirthDate) {
+	   var dtAsOfDate;
+	   var dtBirth;
+	   var dtAnniversary;
+	   var intYears;
+	   var intMonths;
+
+	   // get born date
+	   dtBirth = new Date(varBirthDate);
+	   
+	   // get as of date
+	   dtAsOfDate = new Date(varAsOfDate);
+
+	   // if as of date is on or after born date
+	   if ( dtAsOfDate >= dtBirth )
+	      {
+
+	      // get time span between as of time and birth time
+	      intSpan = ( dtAsOfDate.getUTCHours() * 3600000 +
+	                  dtAsOfDate.getUTCMinutes() * 60000 +
+	                  dtAsOfDate.getUTCSeconds() * 1000    ) -
+	                ( dtBirth.getUTCHours() * 3600000 +
+	                  dtBirth.getUTCMinutes() * 60000 +
+	                  dtBirth.getUTCSeconds() * 1000       )
+
+	      // start at as of date and look backwards for anniversary 
+
+	      // if as of day (date) is after birth day (date) or
+	      //    as of day (date) is birth day (date) and
+	      //    as of time is on or after birth time
+	      if ( dtAsOfDate.getUTCDate() > dtBirth.getUTCDate() ||
+	           ( dtAsOfDate.getUTCDate() == dtBirth.getUTCDate() && intSpan >= 0 ) )
+	         {
+
+	         // most recent day (date) anniversary is in as of month
+	         dtAnniversary = 
+	            new Date( Date.UTC( dtAsOfDate.getUTCFullYear(),
+	                                dtAsOfDate.getUTCMonth(),
+	                                dtBirth.getUTCDate(),
+	                                dtBirth.getUTCHours(),
+	                                dtBirth.getUTCMinutes(),
+	                                dtBirth.getUTCSeconds() ) );
+
+	         }
+
+	      // if as of day (date) is before birth day (date) or
+	      //    as of day (date) is birth day (date) and
+	      //    as of time is before birth time
+	      else {
+
+	         // most recent day (date) anniversary is in month before as of month
+	         dtAnniversary = 
+	            new Date( Date.UTC( dtAsOfDate.getUTCFullYear(),
+	                                dtAsOfDate.getUTCMonth() - 1,
+	                                dtBirth.getUTCDate(),
+	                                dtBirth.getUTCHours(),
+	                                dtBirth.getUTCMinutes(),
+	                                dtBirth.getUTCSeconds() ) );
+
+	         // get previous month
+	         intMonths = dtAsOfDate.getUTCMonth() - 1;
+	         if ( intMonths == -1 )
+	            intMonths = 11;
+
+	         // while month is not what it is supposed to be (it will be higher)
+	         while ( dtAnniversary.getUTCMonth() != intMonths )
+	            // move back one day
+	            dtAnniversary.setUTCDate( dtAnniversary.getUTCDate() - 1 );
+	      }
+
+	      // if anniversary month is on or after birth month
+	      if ( dtAnniversary.getUTCMonth() >= dtBirth.getUTCMonth() ) {
+	         // years elapsed is anniversary year - birth year
+	         intYears = dtAnniversary.getUTCFullYear() - dtBirth.getUTCFullYear();
+	      }
+
+	      // if birth month is after anniversary month
+	      else {
+	         // years elapsed is year before anniversary year - birth year
+	         intYears = (dtAnniversary.getUTCFullYear() - 1) - dtBirth.getUTCFullYear();
+	      }
+	   }
+	   return intYears;
+	},
+	
+	/**
+	 * Opens error dialog with custom text
+	 */
+	alertError: function(text) {
+		jQuery("#wpa-error-dialog-text").html(text);
+		jQuery("#wpa-error-dialog").dialog({
+	      resizable: false,
+	      height:'auto',
+	      width: 550,
+	      modal: true,
+	      buttons: {
+	        "Ok": function() {
+	          jQuery( this ).dialog("close");
+	        },
+	      }
+	    });
+	},
+	
 	/** DATATABLE COLUMN RENDERERS **/
 	renderTimeColumn: function(data, type, full) {
 		return WPA.displayEventTime(data, full['time_format']);
@@ -729,7 +880,7 @@ var WPA = {
 	},
 	
 	renderAgeCategoryColumn: function(data, type, full) {
-		return '<div class="datatable-center" title="' + WPA.getAgeCategoryDescription(data) + '">' + data + '</div>';
+		return '<div class="datatable-center">' + WPA.getAgeCategoryDescription(data) + '</div>';
 	},
 	
 	renderEventTypeColumn: function(data, type, full) {
@@ -746,6 +897,19 @@ var WPA = {
 	
 	renderTop10LinkColumn: function(data, type, full) {
 		return '<div class="wpa-link" onclick="WPA.Records.displayEventTop10Dialog(' + data + ', \'' + full['category'] + '\')">' + WPA.getProperty('column_top_10') + '</div>';
+	},
+	
+	renderClubRankColumn: function(data, type, full) {
+		var rank = parseInt(data);
+		if(rank > 10) {
+			return data;
+		}
+		else if(rank == 1) {
+			return '<div class="wpa-rank rank-first">' + data + '</div>';
+		}
+		else {
+			return '<div class="wpa-rank rank-top-10">' + data + '</div>';
+		}
 	},
 	
 	renderPositionColumn: function(data, type, full) {

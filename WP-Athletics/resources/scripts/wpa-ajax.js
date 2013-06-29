@@ -7,11 +7,16 @@ WPA.Ajax = {
 	/**
 	 * sets up the object with the AJAX url and security nonce, also retrieves language properties
 	 */
-	setup: function(url, nonce, userId, callbackFn) {
+	setup: function(url, nonce, userId, callbackFn, skipLoadGlobals) {
 		this.url = url;
 		WPA.userId = userId;
 		this.nonce = nonce;
-		this.loadGlobalData(callbackFn);
+		if(!skipLoadGlobals) {
+			this.loadGlobalData(callbackFn);
+		}
+		else {
+			callbackFn();
+		}
 	},
 	
 	/**
@@ -61,6 +66,7 @@ WPA.Ajax = {
 				WPA.globals.ageCategories = result.ageCategories;
 				WPA.globals.eventCategories = result.eventCategories;
 				WPA.Props = result.languageProperties;
+				WPA.Settings = result.settings;
 				if(callbackFn) {
 					callbackFn();
 				}

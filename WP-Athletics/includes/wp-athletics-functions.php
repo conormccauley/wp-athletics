@@ -45,6 +45,7 @@ if(!class_exists('WPA_Base')) {
 		 */
 		public function load_global_data() {
 			global $wpa_lang;
+			global $wpa_settings;
 			$age_cats = $this->get_age_categories();
 			$sub_types = $this->get_event_sub_type();
 			$event_cats = $this->wpa_db->get_event_categories();
@@ -53,7 +54,8 @@ if(!class_exists('WPA_Base')) {
 				'ageCategories' => $age_cats,
 				'eventTypes' => $sub_types,
 				'eventCategories' => $event_cats,
-				'languageProperties' => $wpa_lang
+				'languageProperties' => $wpa_lang,
+				'settings' => $wpa_settings
 			));
 			die();
 		}
@@ -75,7 +77,8 @@ if(!class_exists('WPA_Base')) {
 		public function get_user_profile() {
 			$userId = (integer) $_POST['user_id'];
 			$result = array(
-				'ageCategory' => get_user_meta( $userId, 'wp-athletics_age_category', true ),
+				'gender' => get_user_meta( $userId, 'wp-athletics_gender', true ),
+				'dob' => get_user_meta( $userId, 'wp-athletics_dob', true ),
 				'faveEvent' => get_user_meta( $userId, 'wp-athletics_fave_event_category', true ),
 				'name' => $this->wpa_db->get_user_display_name( $userId ),
 				'photo' => get_user_meta( $userId, 'wp-athletics_profile_photo', true )
@@ -216,23 +219,8 @@ if(!class_exists('WPA_Base')) {
 		 * gets an array of age categories from the settings or uses default value
 		 */
 		public function get_age_categories() {
-			$age_cats_str = get_option( 'wp-athletics_age_cats', 'J:Juvenile;M:Senior Male;F:Senior Female;M35:Male over 35;F35:Female over 35' );
-
-			$return_value = array();
-
-			$age_cats = explode( ';', $age_cats_str );
-			if( count( $age_cats ) > 0) {
-				foreach ( $age_cats as $age_cat_str ) {
-					$age_cat = explode( ':', $age_cat_str );
-					if( count($age_cat) == 2 ) {
-						array_push( $return_value, array(
-							'id' => $age_cat[0],
-							'description' => $age_cat[1]
-						));
-					}
-				}
-			}
-			return $return_value;
+			global $wpa_settings;
+			return get_option( 'wp-athletics_age_cats', $wpa_settings['default_age_categories'] );
 		}
 
 		/**
@@ -241,6 +229,11 @@ if(!class_exists('WPA_Base')) {
 		public function enqueue_scripts_and_styles() {
 			global $current_user;
 
+			// register common scripts and styles
+			wp_register_script( 'wpa-functions', WPA_PLUGIN_URL . '/resources/scripts/wpa-functions.js' );
+			wp_register_script( 'wpa-custom', WPA_PLUGIN_URL . '/resources/scripts/wpa-custom.js' );
+			wp_register_script( 'wpa-ajax', WPA_PLUGIN_URL . '/resources/scripts/wpa-ajax.js' );
+
 			if( !is_admin() ) {
 				$theme = strtolower(get_option( 'wp-athletics_theme', 'default') );
 
@@ -248,10 +241,6 @@ if(!class_exists('WPA_Base')) {
 
 				// register scripts and styles
 				wp_register_script( 'datatables', WPA_PLUGIN_URL . '/resources/scripts/jquery.dataTables.min.js' );
-				wp_register_script( 'wpa-custom', WPA_PLUGIN_URL . '/resources/scripts/wpa-custom.js' );
-				wp_register_script( 'wpa-functions', WPA_PLUGIN_URL . '/resources/scripts/wpa-functions.js' );
-				wp_register_script( 'wpa-ajax', WPA_PLUGIN_URL . '/resources/scripts/wpa-ajax.js' );
-
 				wp_register_style( 'datatables', WPA_PLUGIN_URL . '/resources/css/jquery.dataTables.css' );
 				wp_register_style( 'wpa_style', WPA_PLUGIN_URL . '/resources/css/wpa-style.css' );
 				wp_register_style( 'wpa_theme_jqueryui', WPA_PLUGIN_URL . '/resources/css/themes/' . $theme . '/jquery-ui.css' );
@@ -277,7 +266,29 @@ if(!class_exists('WPA_Base')) {
 			}
 			else {
 				wpa_log('enqueuing admin scripts');
+
+				// register scripts and styles
+				wp_register_style( 'wpa_admin_style', WPA_PLUGIN_URL . '/resources/css/wpa-admin-style.css' );
+				wp_register_style( 'wpa_theme_jqueryui', WPA_PLUGIN_URL . '/resources/css/themes/default/jquery-ui.css' );
+				wp_register_script( 'wpa-admin', WPA_PLUGIN_URL . '/resources/scripts/wpa-admin.js' );
+
+				// enqueue scripts
 				wp_enqueue_script('jquery');
+				wp_enqueue_script( 'jquery-ui-core' );
+				wp_enqueue_script( 'jquery-ui-tabs' );
+				wp_enqueue_script( 'jquery-ui-dialog' );
+				wp_enqueue_script( 'jquery-ui-autocomplete' );
+				wp_enqueue_script( 'jquery-ui-tooltip' );
+				wp_enqueue_script( 'jquery-effects-highlight' );
+				wp_enqueue_script( 'jquery-ui-datepicker' );
+				wp_enqueue_script( 'wpa-custom' );
+				wp_enqueue_script( 'wpa-functions' );
+				wp_enqueue_script( 'wpa-ajax' );
+				wp_enqueue_script( 'wpa-admin' );
+
+				// enqueue styles
+				wp_enqueue_style( 'wpa_admin_style' );
+				wp_enqueue_style( 'wpa_theme_jqueryui' );
 			}
 		}
 
@@ -296,25 +307,33 @@ if(!class_exists('WPA_Base')) {
 							<!-- ATHLETE PHOTO -->
 							<div class="wpa-profile-photo wpa-profile-photo-default" id="wpaUserProfilePhoto"></div>
 
-							<!-- DISPLAY NAME -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_display_name_label'); ?>:</label>
-								<span id="wpa-profile-name"></span>
-							</div>
+							<div class="wpa-profile-info-fieldset">
+								<!-- DISPLAY NAME -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_display_name_label'); ?>:</label>
+									<span id="wpa-profile-name"></span>
+								</div>
 
-							<!-- AGE CLASS -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_age_class'); ?>:</label>
-								<span id="wpa-profile-age-class"></span>
-							</div>
+								<!-- DOB -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_dob'); ?>:</label>
+									<span id="wpa-profile-dob"></span>
+								</div>
 
-							<!-- FAVOURITE EVENT -->
-							<div class="wpa-profile-field">
-								<label><?php echo $this->get_property('my_profile_fave_event'); ?>:</label>
-								<span id="wpa-profile-fave-event"></span>
+								<!-- AGE CLASS -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_age_class'); ?>:</label>
+									<span id="wpa-profile-age-class"></span>
+								</div>
+
+								<!-- FAVOURITE EVENT -->
+								<div class="wpa-profile-field">
+									<label><?php echo $this->get_property('my_profile_fave_event'); ?>:</label>
+									<span id="wpa-profile-fave-event"></span>
+								</div>
 							</div>
+							<br style="clear:both"/>
 						</div>
-						<br style="clear:both"/>
 					</div>
 
 					<div class="wpa-menu">
@@ -428,6 +447,14 @@ if(!class_exists('WPA_Base')) {
 					</table>
 				  </div>
 			  </div>
+			</div>
+
+			<!--  ERROR DIALOG -->
+			<div style="display:none" id="wpa-error-dialog" title="<?php echo $this->get_property('error_dialog_title'); ?>">
+  				<p class="wpa-alert">
+  					<span class="ui-icon ui-icon-alert" style="float: left; margin: 4px 7px 20px 0;"></span>
+  					<div id="wpa-error-dialog-text"></div>
+  				</p>
 			</div>
 		<?php
 		}

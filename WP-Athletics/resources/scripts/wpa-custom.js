@@ -175,12 +175,13 @@ _renderMenu: function( ul, items ) {
       
       disable: function() {
     	  this.input.prop('disabled', true);
-    	  this.button.remove();
+    	  this.button.hide();
       },
       
       enable: function() {
     	  this.input.prop('disabled', false);
-    	  this._createShowAllButton(); 
+    	  this.button.remove();
+    	  this._createShowAllButton();
       },
       
       setValue : function(value) {

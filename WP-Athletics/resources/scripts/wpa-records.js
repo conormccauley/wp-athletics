@@ -40,7 +40,8 @@ WPA.Records = {
 		}, {
 			ageCategory: WPA.Records.currentCategory,
 			eventSubTypeId: WPA.filterType,
-			eventDate: WPA.filterPeriod
+			eventDate: WPA.filterPeriod,
+			gender: WPA.Records.gender
 		});
 	},
 	
@@ -54,6 +55,7 @@ WPA.Records = {
 			WPA.Records.top10Dialog.dialog('open');
 		}, {
 			ageCategory: WPA.Records.currentCategory,
+			gender: WPA.Records.gender,
 			eventSubTypeId: WPA.filterType,
 			eventDate: WPA.filterPeriod,
 			eventCategoryId: eventCatId
@@ -97,6 +99,12 @@ WPA.Records = {
 			"sDom": 'rt',
 			"bPaginate": false,
 			"aaSorting": [[ 1, "asc" ]],
+			"fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
+				// highlight the row if it is one of my results
+				if(aData['user_id'] == WPA.userId) {
+					jQuery(nRow).addClass('records-highlight-my-result');
+				}
+			},
 			"aoColumns": [{ 
 				"mData": "time_format",
 				"bVisible": false
