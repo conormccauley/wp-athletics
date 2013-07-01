@@ -29,8 +29,6 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		 * [AJAX] Retrieves list of events for autocomplete search
 		 */
 		public function event_autocomplete() {
-			global $current_user;
-
 			// perform the query
 			$results = $this->wpa_db->get_events( strtolower($_GET['term']) );
 
@@ -205,7 +203,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		}
 
 		/**
-		 * Called when the my results page is requested
+		 * For content filtering, ensures the content is only displayed in the WP loop
 		 */
 		public function my_results_content_filter( $content ) {
 			if( !in_the_loop() ) return $content;
@@ -424,7 +422,7 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							});
 
 							// load PB tab
-							WPA.MyResults.getPersonalBests();
+							WPA.MyResults.getPersonalBests(true);
 
 							// my fave event
 							jQuery("#myProfileFaveEvent").combobox({
@@ -663,56 +661,56 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							<input type="hidden" id="addResultEventDate" value=""/>
 							<div class="wpa-add-result-field">
 								<label class="required"><?php echo $this->get_property('add_result_event_name'); ?>:</label>
-								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="30" maxlength=100 type="text" id="addResultEventName" />
+								<input style="background: #fff" class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="30" maxlength=100 type="text" id="addResultEventName" />
 								<span class="add-result-help" title="<?php echo $this->get_property('help_add_result_event_name'); ?>"></span>
 								<span style="display:none;" title="<?php echo $this->get_property('help_add_result_cancel_event'); ?>" class="add-result-cancel-event"></span>
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_category'); ?>:</label>
 								<select class="add-result-required" id="addResultEventCategory">
 									<option value="" selected="selected"></option>
 								</select>
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_location'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="25" maxlength=100 type="text" id="addResultEventLocation" />
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_sub_type'); ?>:</label>
 								<select class="add-result-required" id="addResultEventSubType">
 									<option value="" selected="selected"></option>
 								</select>
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_date'); ?>:</label>
-								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="30" type="text" id="addResultDate"/>
+								<input style="position:relative; top:-2px" class="ui-widget ui-widget-content ui-state-default ui-corner-all add-result-required" size="30" type="text" id="addResultDate"/>
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_age_class'); ?>:</label>
 								<input type="hidden" id="addResultAgeCategory" value=""/>
 								<input type="text" class="ui-widget ui-widget-content ui-state-default ui-corner-all" disabled="disabled" readonly="readonly" size="30" id="addResultAgeCategoryDisplay"/>
 							</div>
-							<div style="display:none;" time-format="h" class="wpa-add-result-field">
+							<div style="display:none;" time-format="h" class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_time_hours'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all" time-format="h" maxlength="2" size="3" type="text" id="addResultTimeHours" value="0">
 							</div>
-							<div style="display:none;" time-format="m" class="wpa-add-result-field">
+							<div style="display:none;" time-format="m" class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_time_minutes'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all" time-format="m" maxlength="2" size="3" type="text" id="addResultTimeMinutes" value="0">
 							</div>
-							<div style="display:none;" time-format="s" class="wpa-add-result-field">
+							<div style="display:none;" time-format="s" class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_time_seconds'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all" time-format="s" maxlength="2" size="3" type="text" id="addResultTimeSeconds" value="0">
 							</div>
-							<div style="display:none;" time-format="ms" class="wpa-add-result-field">
+							<div style="display:none;" time-format="ms" class="wpa-add-result-field add-result-no-bg">
 								<label class="required"><?php echo $this->get_property('add_result_event_time_milliseconds'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all" time-format="ms" maxlength="3" size="3" type="text" id="addResultTimeMilliSeconds" value="0">
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label><?php echo $this->get_property('add_result_event_position'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all" size="5" type="text" id="addResultPosition" value="">
 							</div>
-							<div class="wpa-add-result-field">
+							<div class="wpa-add-result-field add-result-no-bg">
 								<label><?php echo $this->get_property('add_result_garmin_link'); ?>:</label>
 								<input class="ui-widget ui-widget-content ui-state-default ui-corner-all" size="30" type="text" id="addResultGarminId" value="">
 								<span class="add-result-help" title="<?php echo $this->get_property('help_add_result_garmin_id'); ?>"></span>

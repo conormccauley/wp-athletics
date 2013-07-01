@@ -38,7 +38,19 @@ if(!class_exists('WPA_Base')) {
 			add_action( 'wp_ajax_wpa_get_user_profile', array ( $this, 'get_user_profile') );
 			add_action( 'wp_ajax_wpa_search_autocomplete', array ( $this, 'search_autocomplete') );
 			add_action( 'wp_ajax_wpa_get_user_oldest_result_year', array ( $this, 'get_user_oldest_result_year') );
-			add_action( 'admin_enqueue_scripts', array ($this, 'enqueue_common_scripts_and_styles' ) );
+
+			// no priv actions (for users not logged in)
+			add_action( 'wp_ajax_nopriv_wpa_get_personal_bests', array ( $this, 'get_personal_bests') );
+			add_action( 'wp_ajax_nopriv_wpa_load_global_data', array ( $this, 'load_global_data') );
+			add_action( 'wp_ajax_nopriv_wpa_get_results', array ( $this, 'get_results') );
+			add_action( 'wp_ajax_nopriv_wpa_get_event_results', array ( $this, 'get_event_results') );
+			add_action( 'wp_ajax_nopriv_wpa_get_user_profile', array ( $this, 'get_user_profile') );
+			add_action( 'wp_ajax_nopriv_wpa_search_autocomplete', array ( $this, 'search_autocomplete') );
+			add_action( 'wp_ajax_nopriv_wpa_get_user_oldest_result_year', array ( $this, 'get_user_oldest_result_year') );
+
+			if( is_admin() ) {
+				add_action( 'admin_enqueue_scripts', array ($this, 'enqueue_common_scripts_and_styles' ) );
+			}
 		}
 
 		/**
@@ -232,7 +244,6 @@ if(!class_exists('WPA_Base')) {
 		 * enqueues the common required JS scripts for front end or admin pages
 		 */
 		public function enqueue_common_scripts_and_styles() {
-			global $current_user;
 
 			if( !is_admin() ) {
 
@@ -447,6 +458,19 @@ if(!class_exists('WPA_Base')) {
   					<div id="wpa-error-dialog-text"></div>
   				</p>
 			</div>
+
+			<!-- LOADING DIALOG -->
+			<div style="display:none" id="wpa-loading-dialog">
+				<div class="wpa-loading">
+					<div id="wpa-loading-animation"></div>
+					<div id="wpa-loading-text"><?php echo $this->get_property('loading_dialog_text'); ?></div>
+					<br style="clear:both;"/>
+				</div>
+			</div>
+
+			<!-- PERSONAL BESTS TABLE LOADING -->
+			<div id="wpa-pb-table-processing" class="dataTables_pb_processing" style="display:none;"><?php echo $this->get_property('table_loading_records_message'); ?>.</div>
+
 		<?php
 		}
 	}

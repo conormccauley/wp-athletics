@@ -95,6 +95,8 @@ return array(
 
 	// datatables
 	'table_no_results' => 'There are no event results to display',
+	'table_loading_message' => 'Loading Results...',
+	'table_loading_records_message' => 'Loading Records...',
 
 	// errors
 	'ajax_no_permission' => 'You do not have permission to perform this request',
@@ -113,6 +115,7 @@ return array(
 	// misc
  	'gender_M' => 'Male',
 	'gender_F' => 'Female',
+	'loading_dialog_text' => 'One moment...',
 
 	// pages
 	'my_results_page_title' => 'My Results',

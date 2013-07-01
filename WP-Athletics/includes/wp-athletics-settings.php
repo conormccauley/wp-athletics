@@ -2,7 +2,7 @@
 
 // WP Athletics Settings
 return array(
-	'create_demo_data_on_activate' => false,
+	'create_demo_data_on_activate' => true, // must also be in WP_DEBUG mode for this to activate
 	'display_date_format' => 'dd M yy',
 
 	'default_age_categories' => array(

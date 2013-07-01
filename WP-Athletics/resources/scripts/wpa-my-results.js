@@ -76,8 +76,8 @@ WPA.MyResults = {
 	 * Opens the dialog to edit an event result
 	 */
 	editResult: function(id) {
+		WPA.toggleLoading(true);
 		jQuery("#addResultDialog").dialog("option", "title", WPA.getProperty('edit_result_title'));
-		jQuery("#addResultDialog").dialog("open");
 		WPA.Ajax.loadResultInfo(id);
 	},
 	
@@ -124,6 +124,9 @@ WPA.MyResults = {
 			jQuery('#addResultTimeMinutes').val(time.minutes);
 			jQuery('#addResultTimeSeconds').val(time.seconds);
 			jQuery('#addResultTimeMilliSeconds').val(time.milliseconds);
+			
+			WPA.toggleLoading(false);
+			jQuery("#addResultDialog").dialog("open");
 		});
 	},
 	
@@ -190,7 +193,7 @@ WPA.MyResults = {
 	/**
 	 * Loads personal bests
 	 */
-	getPersonalBests: function() {
+	getPersonalBests: function(disableLoading) {
 		WPA.Ajax.getPersonalBests(function(result) {
 			WPA.MyResults.pbTable.fnClearTable();
 			WPA.MyResults.pbTable.fnAddData(result);
@@ -199,7 +202,7 @@ WPA.MyResults = {
 			ageCategory: WPA.filterAge,
 			eventSubTypeId: WPA.filterType,
 			eventDate: WPA.filterPeriod
-		});
+		}, disableLoading);
 	},
 
 	/** 

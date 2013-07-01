@@ -112,6 +112,7 @@ table.display thead th div.DataTables_sort_wrapper span {
 	clear: both;
 }
 
+/*
 .dataTables_processing {
 	position: absolute;
 	top: 0px;
@@ -123,6 +124,34 @@ table.display thead th div.DataTables_sort_wrapper span {
 	color: #999;
 	font-size: 11px;
 	padding: 2px 0;
+}
+*/
+
+.dataTables_processing {
+	position: absolute;
+	top: 0px;
+	left: 50%;
+	width: 150px;
+	margin-top: 0px;
+	margin-left: -75px;
+	border: 1px solid gray;
+	text-align: center;
+	color: #999;
+	font-size: 13px;
+	padding: 14px 0px 14px 15px;
+	z-index: 9999;
+	background: url(../images/spinner.gif) white no-repeat 10px 12px;
+}
+
+.dataTables_pb_processing {
+	width: 150px;
+	border: 1px solid gray;
+	text-align: center;
+	color: #999;
+	font-size: 13px;
+	padding: 14px 0px 14px 15px;
+	z-index: 9999;
+	background: url(../images/spinner.gif) white no-repeat 10px 12px;
 }
 
 .dataTables_length {

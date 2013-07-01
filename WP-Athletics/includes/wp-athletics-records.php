@@ -23,29 +23,7 @@ if(!class_exists('WP_Athletics_Records')) {
 		public function enqueue_scripts_and_styles() {
 			// common scripts and styles
 			$this->enqueue_common_scripts_and_styles();
-
 			wp_enqueue_script( 'wpa-records' );
-		}
-
-		/**
-		 * Generates the records for male gender
-		 */
-		public function records_male() {
-			$this -> records_by_gender( 'M' );
-		}
-
-		/**
-		 * Generates the records for female gender
-		 */
-		public function records_female() {
-			$this -> records_by_gender( 'F' );
-		}
-
-		/**
-		 * Generates the records for a specific gender
-		 */
-		protected function records_by_gender( $gender ) {
-			$this -> records( array( 'gender' => $gender ) );
 		}
 
 		/**
@@ -88,22 +66,36 @@ if(!class_exists('WP_Athletics_Records')) {
 		}
 
 		/**
+		 * For content filtering, ensures the content is only displayed in the WP loop
+		 */
+		public function records_content_filter( $content ) {
+			if( !in_the_loop() ) return $content;
+			$this->records();
+		}
+
+		/**
 		 * Generates a 'records' page when the shortcode [wpa-records] is used
 		 */
-		public function records( $atts ) {
+		public function records( $atts = null ) {
+			global $records_gender;
 
 			$this->enqueue_scripts_and_styles();
 
-			$displayGenderOption = true;
-			$gender = 'M';
+			// display the gender combo box? this will remain false unless a gender has been specified either via global or an attribute
+			$display_gender_option = false;
 
 			// check for a gender attribute
-			if(isset( $atts['gender'] ) ) {
+			if(isset( $atts ) && isset( $atts['gender'] ) ) {
 				$genderStr = strtoupper( $atts['gender'] );
-				if($genderStr == 'M' || $genderStr == 'F') {
-					$displayGenderOption = false;
-					$gender = $genderStr;
+				if( $genderStr == 'M' || $genderStr == 'F') {
+					$records_gender = $genderStr;
 				}
+			}
+			// check is the records_gender global set
+			else if( false == isset( $records_gender ) ) {
+				// it's not set, display the gender combo and default to M
+				$records_gender = 'M';
+				$display_gender_option = true;
 			}
 
 			global $current_user;
@@ -113,9 +105,9 @@ if(!class_exists('WP_Athletics_Records')) {
 					jQuery(document).ready(function() {
 
 						// set up ajax and retrieve my results
-						WPA.Ajax.setup('<?php echo admin_url( 'admin-ajax.php' ); ?>', '<?php echo $nonce; ?>', '<?php echo $current_user->ID; ?>', function() {
+						WPA.Ajax.setup('<?php echo admin_url( 'admin-ajax.php' ); ?>', '<?php echo $nonce; ?>', '<?php echo $current_user ? $current_user->ID : -1 ?>', function() {
 
-							WPA.Records.gender = '<?php echo $gender; ?>';
+							WPA.Records.gender = '<?php echo $records_gender; ?>';
 
 							// create tabs for each age category
 							jQuery.each(WPA.globals.ageCategories, function(cat, item) {
@@ -175,7 +167,7 @@ if(!class_exists('WP_Athletics_Records')) {
 						<div class="wpa-filters wpa-filter-records ui-corner-all" style="width:600px">
 
 							<?php
-							if ( $displayGenderOption ) {
+							if ( $display_gender_option ) {
 							?>
 							<select id="filterGender">
 								<option value="M"><?php echo $this->get_property('gender_M'); ?></option>

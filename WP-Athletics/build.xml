@@ -21,6 +21,9 @@
   	<copy todir="${destination}">
   		<fileset dir=".">
   	      <exclude name="build.xml"/>
+    	  <exclude name=".buildpath"/>
+  		  <exclude name=".project"/>
+  		  <exclude name="**/.settings/**" />
   	    </fileset>
   	</copy>
   </target>

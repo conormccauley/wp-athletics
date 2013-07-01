@@ -204,16 +204,28 @@ WPA.Ajax = {
 	/** 
 	 * Retrieves a list of personal bests. If age category or event category ID specified, will be filtered.
 	 */
-	getPersonalBests: function(callbackFn, params) {
+	getPersonalBests: function(callbackFn, params, disableLoading) {
 		
+		if(!disableLoading) {
+			WPA.togglePbLoading(true);
+		}
+
 		var data = {action: 'wpa_get_personal_bests'};
-		jQuery.extend(data, params);
+		
+		if(params) {
+			jQuery.extend(data, params);
+		}
 		
 		jQuery.ajax({
 			type: "post",
 			url: WPA.Ajax.url,
 			data: data,
-			success: callbackFn
+			success: function(result) {
+				callbackFn(result);
+				if(!disableLoading) {
+					WPA.togglePbLoading(false);
+				}
+			}
 		});
 	}
 }

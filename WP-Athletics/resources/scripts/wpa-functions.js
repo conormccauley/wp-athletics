@@ -15,7 +15,8 @@ var WPA = {
 			"sDom": 'rt<"bottom fg-toolbar ui-toolbar ui-widget-header ui-corner-bl ui-corner-br ui-helper-clearfix"ip>',
 			"bJQueryUI": true,
 			"oLanguage": {
-				"sEmptyTable": this.getProperty('table_no_results')
+				"sEmptyTable": this.getProperty('table_no_results'),
+				"sProcessing": this.getProperty('table_loading_message')
 			}
 		}
 		jQuery.extend(defaultConfig, config);
@@ -170,6 +171,8 @@ var WPA = {
 	 * Displays the user profile dialog
 	 */
 	displayUserProfileDialog: function(userId) {
+		WPA.toggleLoading(true);
+		
 		WPA.currentUserProfileId = userId;
 		var firstTimeLoad = !WPA.userProfileDialog;
 		if(firstTimeLoad) {
@@ -187,7 +190,7 @@ var WPA = {
 			})
 		}
 		// get personal bests
-		WPA.getPersonalBests();
+		WPA.getPersonalBests(true);
 		
 		// get user profile info
 		WPA.Ajax.getUserProfile(userId, function(result) {
@@ -222,7 +225,7 @@ var WPA = {
 			if(result) {
 				var userYear = parseInt(result);
 				var currentYear = new Date().getFullYear()-1;
-				if(currentYear > userYear) {
+				if(currentYear >= userYear) {
 					for(var year = currentYear; year >= userYear; year--) {
 						jQuery("#profileFilterPeriod").append('<option year="y" value="year:' + year + '">' + year + '</option>');
 					}
@@ -245,12 +248,15 @@ var WPA = {
 	 * Displays the event results dialog
 	 */
 	displayEventResultsDialog: function(eventId) {
+		
+		WPA.toggleLoading(true);
+		
 		if(!WPA.eventResultsDialog) {
 			this.createEventResultsDatatables();
 			
 			WPA.eventResultsDialog = jQuery('#event-results-dialog').dialog({
 				title: this.getProperty('event_results_dialog_title'),
-				autoOpen: true,
+				autoOpen: false,
 				resizable: false,
 				modal: true,
 				width: 'auto',
@@ -272,13 +278,14 @@ var WPA = {
 			WPA.eventResultsTable.fnAddData(result);
 			WPA.eventResultsDialog.dialog("close");
 			WPA.eventResultsDialog.dialog("open");
+			WPA.toggleLoading(false);
 		});
 	},
 	
 	/**
 	 * Loads personal bests
 	 */
-	getPersonalBests: function(userId) {
+	getPersonalBests: function(disableLoading) {
 		WPA.Ajax.getPersonalBests(function(result) {
 			WPA.pbTable.fnClearTable();
 			WPA.pbTable.fnAddData(result);
@@ -287,7 +294,7 @@ var WPA = {
 			ageCategory: WPA.profileFilterAge,
 			eventSubTypeId: WPA.profileFilterType,
 			eventDate: WPA.profileFilterPeriod
-		});
+		}, disableLoading);
 	},
 	
 	/**
@@ -348,6 +355,7 @@ var WPA = {
 					WPA.userProfileDialog.dialog("close");
 					WPA.userProfileDialog.dialog("open");
 					WPA.dialogProfileId = WPA.currentUserProfileId;
+					WPA.toggleLoading(false);
 				}
 			},
 			"sAjaxSource": WPA.Ajax.url,
@@ -693,6 +701,9 @@ var WPA = {
 			}
 		});
 		
+		// create loading dialog
+		WPA.createLoadingDialog();
+		
 		// apply focus/blur functions to any search fields
 	    WPA.setupSearchFields();
 
@@ -863,6 +874,49 @@ var WPA = {
 	        },
 	      }
 	    });
+	},
+	
+	/**
+	 * Creates the loading dialog
+	 */
+	createLoadingDialog: function() {
+		jQuery("#wpa-loading-dialog").dialog({
+	      resizable: false,	
+	      dialogClass: 'wpa-dialog-no-title',
+	      draggable: false,
+	      autoOpen: false,
+	      width: 'auto',
+	      height: 80,
+	      hide: 1000,
+	      modal: true,
+	      open: function (event, ui) {
+	        jQuery("#wpa-loading-dialog").css('overflow', 'hidden');
+	      }
+	    });
+	},
+	
+	/**
+	 * Shows or hides the loading dialog
+	 */
+	toggleLoading: function(show) {
+		if(show) {
+			jQuery('#wpa-loading-dialog').dialog("open");
+		}
+		else {
+			jQuery('#wpa-loading-dialog').dialog("close");
+		}
+	},
+	
+	/**
+	 * Shows or hides a processing message for loading pbs, since this is manually loaded
+	 */
+	togglePbLoading: function(show) {
+		if(show) {
+			jQuery('#wpa-pb-table-processing').show().center();
+		}
+		else {
+			jQuery('#wpa-pb-table-processing').hide();
+		}
 	},
 	
 	/** DATATABLE COLUMN RENDERERS **/

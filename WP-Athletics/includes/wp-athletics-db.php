@@ -87,7 +87,7 @@ if(!class_exists('WP_Athletics_DB')) {
 					$this->create_default_event_cats();
 
 					// create sample data
-					if( (bool)$wpa_settings['create_demo_data_on_activate'] ) {
+					if( WP_DEBUG && (bool)$wpa_settings['create_demo_data_on_activate'] ) {
 						require_once 'wp-athletics-demo-data.php';
 						new WP_Athletics_Demo( $this );
 					}

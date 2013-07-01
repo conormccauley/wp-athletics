@@ -12,6 +12,30 @@
 	border: 0 !important;
 }
 
+.wpa-dialog-no-title .ui-dialog-titlebar {
+	display:none;
+}
+
+.wpa-loading div  {
+	float: left;	
+}
+
+.ui-autocomplete-loading {
+    background: white url('../images/spinner.gif') right center no-repeat !important;
+}
+
+.wpa-loading #wpa-loading-animation {
+	background: url(../images/loading-man.gif) no-repeat;
+	width: 60px;
+	height: 75px;
+}
+
+.wpa-loading #wpa-loading-text {
+	color: rgba(128, 128, 128, 0.64);
+	font-size: 13px;
+	margin: 25px 10px 0px 0px;
+}
+
 .wpa a:hover {
 	color: #000;
 	text-decoration: none !important;
@@ -122,6 +146,10 @@
 	display: inline-block !important;
 }
 
+.wpa-filters input {
+	background: none repeat scroll 0 0 #FFFFFF;
+}
+
 .wpa-profile-field input {
 	width: 150px;
 	background: none repeat scroll 0 0 #FFFFFF !important;
@@ -142,6 +170,10 @@
 .wpa-add-result-field label.required {
 	font-weight: bold;
 	color: #000;
+}
+
+.add-result-no-bg input {
+	background: none repeat scroll 0 0 #FFFFFF !important;
 }
 
 .wpa-add-result-field input {
@@ -207,7 +239,8 @@
     height: 19px;
     margin-left: auto;
     margin-right: auto;
-    padding-top: 3px;
+    padding-right: 1px;
+    padding-top: 4px;
     width: 20px;
 }
 
@@ -426,7 +459,7 @@ table.display {
 }
 
 input.ui-state-default {
-  background: none repeat scroll 0 0 #FFFFFF !important;
+  background: none repeat scroll 0 0 #FFFFFF;
 }
 
 .ui-autocomplete-category {

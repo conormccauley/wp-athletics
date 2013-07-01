@@ -80,6 +80,7 @@ if(!class_exists('WP_Athletics')) {
 		 */
 		function is_wpa_page() {
 			global $post;
+			global $records_gender;
 
 			// my results
 			if( $post->ID == get_option('wp-athletics_my_results_page_id') ) {
@@ -88,17 +89,19 @@ if(!class_exists('WP_Athletics')) {
 
 			// records (both)
 			if( $post->ID == get_option('wp-athletics_records_page_id') ) {
-				$filter = array( $this->wpa_records, 'records' );
+				$filter = array( $this->wpa_records, 'records_content_filter' );
 			}
 
 			// records (male)
 			if( $post->ID == get_option('wp-athletics_records_male_page_id') ) {
-				$filter = array( $this->wpa_records, 'records_male' );
+				$records_gender = 'M';
+				$filter = array( $this->wpa_records, 'records_content_filter' );
 			}
 
 			// records (female)
 			if( $post->ID == get_option('wp-athletics_records_female_page_id') ) {
-				$filter = array( $this->wpa_records, 'records_female' );
+				$records_gender = 'F';
+				$filter = array( $this->wpa_records, 'records_content_filter' );
 			}
 
 			if( isset ( $filter ) ) {
@@ -111,11 +114,15 @@ if(!class_exists('WP_Athletics')) {
 		 * Ensure the correct (bundled) jquery build is included to avoid conflicts
 		 */
 		public function enqueue_scripts() {
-			wpa_log('************** WRITING WPA SCRIPTS');
 
 			// ensure the bundled wordpress jQuery/UI is always used
-			wp_deregister_script('jquery');
-			wp_deregister_script('jquery-ui');
+			if( wp_script_is( 'jquery' ) ) {
+				wp_deregister_script('jquery');
+			}
+
+			if( wp_script_is( 'jquery-ui' ) ) {
+				wp_deregister_script('jquery-ui');
+			}
 
 			wp_register_script('jquery', '/wp-includes/js/jquery/jquery.js');
 			wp_enqueue_script( 'jquery' );
