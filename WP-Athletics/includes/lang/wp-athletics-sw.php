@@ -18,13 +18,12 @@ return array(
 	'column_club_rank' => 'Rank',
 
 	// my results - profile
-	'my_profile_display_name_label' => 'Athlete Name',
+	'my_profile_display_name_label' => 'Idrottsman Namn',
 	'my_profile_age_class' => 'Age Class',
+	'my_profile_select_age_class' => 'Select Age Class',
 	'my_profile_select_fave_event' => 'Select Event',
 	'my_profile_fave_event' => 'Favourite Event',
 	'my_profile_results_recorded' => 'Results Recorded',
-	'my_profile_dob' => 'D.O.B',
-	'my_profile_gender' => 'Gender',
 	'my_profile_select_sub_type' => 'Select Terrain',
 	'my_profile_image_upload_text' => 'Click to upload new profile photo',
 	'my_profile_select_profile_image' => 'Select as profile photo',
@@ -85,13 +84,13 @@ return array(
 	'delete_result_text' => 'Delete this result (cannot be undone)',
 	'edit_result_text' => 'Edit this result',
 	'confirm_result_delete_title' => 'Confirm Delete Result',
-	'confirm_result_delete' => 'Are you sure you wish to delete this result? This cannot be undone',
+	'confirm_result_delete' => 'Are you sure you wish to delete this result? This cannot be undone.',
 
 	// help texts
 	'help_add_result_event_name' => 'The event may already exist in our database, start typing the event name and select if it appears in the drop down menu, otherwise it will be added as a new event.',
 	'help_add_result_garmin_id' => 'If you have the activity recorded on Garmin Connect, copy and paste the activity ID in to this field.<br/><br/>For example if the web address of your activity is <strong>http://connect.garmin.com/activity/317262142</strong>, the ID is <strong>317262142</strong>',
 	'help_add_result_cancel_event' => 'Remove chosen event',
-	'help_column_rank' => 'This column represents the overall club ranking for this result, based on age class, gender and event category',
+	'help_column_rank' => 'This column represents the overall club ranking for this result, based on age category and event',
 
 	// datatables
 	'table_no_results' => 'There are no event results to display',
@@ -100,25 +99,9 @@ return array(
 	'ajax_no_permission' => 'You do not have permission to perform this request',
 	'my_results_not_logged_in' => 'You must be logged in to manage your athletic results. Please login or register',
 	'error_problem_creating_event' => 'There was a problem creating the new event, please try again later',
-	'error_add_result_no_gender_dob' => 'Please tell us you gender and date of birth before you add an event result, this way we can accurately classify your result against others',
-	'error_dialog_title' => 'Error',
-	'error_no_age_category' => 'It appears you weren\'t even born when this event took place, please check and try again',
 
 	// labels for buttons etc
-	'delete' => 'Delete',
-	'submit' => 'Submit',
-	'ok' => 'OK',
-	'cancel' => 'Cancel',
-
-	// misc
- 	'gender_M' => 'Male',
-	'gender_F' => 'Female',
-
-	// pages
-	'my_results_page_title' => 'My Results',
-	'records_male_page_title' => 'Male Club Records',
-	'records_female_page_title' => 'Female Club Records',
-	'records_page_title' => 'Club Records'
+	'delete' => 'Delete'
 );
 
 ?>

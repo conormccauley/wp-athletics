@@ -140,9 +140,9 @@ var WPA = {
 	getEventSubTypeDescription: function(id) {
 		var result = '';
 		if(WPA.globals.eventTypes) {
-			jQuery.each(WPA.globals.eventTypes, function(index,obj) {
-				if(obj.id == id) {
-					result = obj.description;
+			jQuery.each(WPA.globals.eventTypes, function(type,name) {
+				if(type == id) {
+					result = name;
 					return false;
 				}
 			});
@@ -509,12 +509,12 @@ var WPA = {
 	 */
 	setupFilters: function(userId, table, personalBestsCallFn, eventNameFilterFn, columnIndexes) {
 		// add items to combos
-		jQuery(WPA.globals.eventCategories).each(function(index, item) {
+		jQuery.each(WPA.globals.eventCategories, function(index, item) {
 			jQuery("#filterEvent").append('<option value="' + item.id + '">' + item.name + '</option>');
 		});
 		
-		jQuery(WPA.globals.eventTypes).each(function(index, item) {
-			jQuery("#filterType").append('<option value="' + item.id + '">' + item.description + '</option>');
+		jQuery.each(WPA.globals.eventTypes, function(type, name) {
+			jQuery("#filterType").append('<option value="' + type + '">' + name + '</option>');
 		});
 		
 		jQuery.each(WPA.globals.ageCategories, function(cat, item) {
@@ -590,12 +590,12 @@ var WPA = {
 	 */
 	setupDialogs: function() {
 		// add items to combos
-		jQuery(WPA.globals.eventCategories).each(function(index, item) {
+		jQuery.each(WPA.globals.eventCategories, function(index, item) {
 			jQuery("#profileFilterEvent").append('<option value="' + item.id + '">' + item.name + '</option>');
 		});
 		
-		jQuery(WPA.globals.eventTypes).each(function(index, item) {
-			jQuery("#profileFilterType").append('<option value="' + item.id + '">' + item.description + '</option>');
+		jQuery.each(WPA.globals.eventTypes, function(type, name) {
+			jQuery("#profileFilterType").append('<option value="' + type + '">' + name + '</option>');
 		});
 		
 		jQuery.each(WPA.globals.ageCategories, function(cat, item) {
@@ -678,7 +678,7 @@ var WPA = {
 	 * sets up common javascript listeners for both 'records' and 'my results' features
 	 */
 	setupCommon: function() {
-		
+
 		// set up tabs
 		jQuery('.wpa-results-tabs').tabs({
 			activate: function( event, ui ) {

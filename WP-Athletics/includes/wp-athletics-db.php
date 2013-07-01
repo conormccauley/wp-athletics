@@ -17,8 +17,6 @@ if(!class_exists('WP_Athletics_DB')) {
 		 **/
 		public function __construct() {
 			global $wpdb;
-			wpa_log('DB instance created');
-
 			$this->RESULT_TABLE = $wpdb->prefix . "wpa_result";
 			$this->EVENT_TABLE = $wpdb->prefix . "wpa_event";
 			$this->EVENT_CAT_TABLE = $wpdb->prefix . "wpa_event_cat";
@@ -83,8 +81,6 @@ if(!class_exists('WP_Athletics_DB')) {
 				dbDelta( $sql );
 
 				update_option( "wp-athletics_db_version", WPA_DB_VERSION );
-
-				wpa_log('installed version is ' . $installed_ver);
 
 				// is this a first time install? if so, create event categories and user meta data
 				if($installed_ver == 'not_installed') {

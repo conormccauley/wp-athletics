@@ -1,0 +1,29 @@
+.wpa-admin {
+	line-height: 1.8em;
+	font-size: 12px;
+}
+
+.wpa-admin-intro {
+	padding: 10px;
+	font-size: 14px;
+}
+
+.wpa-admin-intro ul {
+    list-style: disc outside none;
+    padding-left: 10px;
+}
+
+.wpa-admin-setting {
+	margin-bottom: 2px;
+}
+
+.wpa-admin-setting label {
+	text-align: right;
+	width: 70px;
+	display: inline-block;
+}
+
+.wpa-admin-setting select {
+	height: 22px;
+	width: 100px;
+}

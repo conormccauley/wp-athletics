@@ -1,3 +1,34 @@
+.wpa {
+	margin-top: 5px;
+}
+
+.wpa-content {
+	background: none !important;
+	background-image: none !important;
+	width: 100% !important;
+}
+	
+.wpa-tabs a {
+	border: 0 !important;
+}
+
+.wpa a:hover {
+	color: #000;
+	text-decoration: none !important;
+}
+
+.wpa-tabs ul {
+	margin: 0px !important;
+	padding: 0px !important;
+	border: none !important;
+}
+
+.wpa-tabs ul li {
+	width: auto !important;
+	line-height: 1em !important;
+	padding: 0px !important;
+}
+
 .entry-content th, .comment-content th {
     text-transform: none;
     font-size: 1em;
@@ -16,11 +47,11 @@
 }
 
 .wpa-menu {
-	margin: 5px 0 4px;
+	height: 25px;
+	margin: 4px 0 4px;
 }
 
 .wpa-profile-info {
-	width: 600px;
 	float: left;
 	padding: 5px 0px;
 }
@@ -59,11 +90,11 @@
 
 #wpa-profile-add-result {
 	float: right;
-	 margin-top: -1px;
 }
 
 #wpa-profile-add-result button {
-	font-size: 12px;
+	font-size: 11px;
+	height: 25px;
 }
 
 .wpa-profile-field {
@@ -72,10 +103,12 @@
 }
 
 .wpa-profile-field label {
-	width: 100px;
-	display: inline-block;
-	text-align: right;
-	margin: 0px 5px 0px 0px;
+    display: inline-block;
+    font-size: 11px;
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
+    width: 100px;
 }
 
 .wpa-link {
@@ -86,6 +119,7 @@
 .wpa input {
 	height: 19px;
 	padding: 2px 2px 2px 4px;
+	display: inline-block !important;
 }
 
 .wpa-profile-field input {
@@ -170,7 +204,7 @@
 .wpa-rank {
     background-position: 0 0;
     background-repeat: no-repeat;
-    height: 18px;
+    height: 19px;
     margin-left: auto;
     margin-right: auto;
     padding-top: 3px;
@@ -281,6 +315,7 @@
 
 .wpa-records-search {
 	float: right;
+	margin-top: -6px;
 }
 
 .wpa-ac-search input {
@@ -360,7 +395,7 @@ table.display {
 }
 
 .wpa-filter-records {
-	margin-top: 6px;
+
 }
 
 .custom-combobox {

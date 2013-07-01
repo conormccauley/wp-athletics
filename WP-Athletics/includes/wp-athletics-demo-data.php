@@ -139,26 +139,27 @@ if(!class_exists('WP_Athletics_Demo')) {
 		 */
 		public function generate_random_sub_type( $event ) {
 
-			$roadTrack = array('R','T');
+			$roadIndoor = array('T','I');
+			$roadTrack = array('R','T', 'I');
 			$roadTrailXC = array('R','TR','XC');
 
 			if( $event == '100m') {
-				return 'T';
+				return $roadIndoor[array_rand( $roadIndoor )];
 			}
 			else if( $event == '200m') {
-				return 'T';
+				return $roadIndoor[array_rand( $roadIndoor )];
 			}
 			else if( $event == '400m') {
-				return 'T';
+				return $roadIndoor[array_rand( $roadIndoor )];
 			}
 			else if( $event == '800m') {
-				return 'T';
+				return $roadIndoor[array_rand( $roadIndoor )];
 			}
 			else if( $event == '1000m') {
-				return 'T';
+				return $roadIndoor[array_rand( $roadIndoor )];
 			}
 			else if( $event == '1500m') {
-				return 'T';
+				return $roadIndoor[array_rand( $roadIndoor )];
 			}
 			else if( $event == '3000m') {
 				return $roadTrack[array_rand( $roadTrack )];
@@ -269,6 +270,13 @@ if(!class_exists('WP_Athletics_Demo')) {
 					$random_password = __('User already exists.  Password inherited.');
 				}
 			}
+
+			// add data for admin user (me!)
+			array_push( $this->users, array(
+				'user_id' => 0,
+				'age_cat' => 'S',
+				'gender' => 'M'
+			));
 		}
 	}
 }

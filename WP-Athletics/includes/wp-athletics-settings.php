@@ -2,7 +2,9 @@
 
 // WP Athletics Settings
 return array(
-	'create_demo_data_on_activate' => true,
+	'create_demo_data_on_activate' => false,
+	'display_date_format' => 'dd M yy',
+
 	'default_age_categories' => array(
 		'J' => array('name' => 'Junior', 'from' => 0, 'to' => 20),
 		'S' => array('name' => 'Senior', 'from' => 20, 'to' => 35),
@@ -20,14 +22,14 @@ return array(
 		//'M90' => array('name' => '90-95', 'from' => 90, 'to' => 95),
 		//'M95' => array('name' => '95-100', 'from' => 95, 'to' => 100)
 	),
+
 	'default_terrain_categories' => array(
 		'R' => 'Road',
 		'T' => 'Track',
 		'I' => 'Indoor',
 		'XC' => 'XC',
-		'TR' => Trail
-	),
-	'display_date_format' => 'dd M yy'
+		'TR' => 'Trail'
+	)
 );
 
 ?>

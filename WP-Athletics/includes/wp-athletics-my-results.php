@@ -177,23 +177,65 @@ if(!class_exists('WP_Athletics_My_Results')) {
 		}
 
 		/**
+		 * Enqueues scripts and styles
+		 */
+		public function enqueue_scripts_and_styles() {
+			// common scripts and styles
+			$this->enqueue_common_scripts_and_styles();
+
+			wp_enqueue_script( 'wpa-my-results' );
+		}
+
+		/**
+		 * Creates a "My Results" page
+		 */
+		public function create_page() {
+			$pages_created = get_option( 'wp-athletics_pages_created', array() );
+
+			$the_page_id = $this->generate_page( $this->get_property('my_results_page_title') );
+
+			if($the_page_id) {
+				add_option('wp-athletics_my_results_page_id', $the_page_id, '', 'yes');
+
+				array_push( $pages_created, $the_page_id );
+				update_option( 'wp-athletics_pages_created', $pages_created);
+
+				wpa_log('My Results page created!');
+			}
+		}
+
+		/**
+		 * Called when the my results page is requested
+		 */
+		public function my_results_content_filter( $content ) {
+			if( !in_the_loop() ) return $content;
+			$this->my_results();
+		}
+
+		/**
 		 * Generates a 'my results' settings page when the shortcode [wpa-my-results] is used
 		 */
 		public function my_results() {
+
 			if ( is_user_logged_in() ) {
+
+				global $current_user;
+				global $wpa_settings;
+
 				$this->enqueue_scripts_and_styles();
+
+				// create user meta if not yet created
+				if(!get_user_meta( $current_user->ID, 'wpa_athlete_name', true) ) {
+					add_user_meta( $current_user->ID, 'wp-athletics_gender', '', true );
+					add_user_meta( $current_user->ID, 'wp-athletics_dob', '', true );
+					add_user_meta( $current_user->ID, 'wp-athletics_fave_event_category', '', true );
+				}
 
 				// add image upload capabilities for subscriber role (default role for registered members);
 				$subscriber = get_role('subscriber');
 				$subscriber->add_cap('upload_files');
 				$subscriber->add_cap('edit_posts');
 
-				// custom script
-				wp_register_script( 'wpa-my-results', WPA_PLUGIN_URL . '/resources/scripts/wpa-my-results.js' );
-				wp_enqueue_script( 'wpa-my-results' );
-
-				global $current_user;
-				global $wpa_settings;
 				$nonce = wp_create_nonce( $this->nonce );
 
 				// profile info
@@ -233,8 +275,8 @@ if(!class_exists('WP_Athletics_My_Results')) {
 							});
 
 							// create event sub type selection list
-							jQuery(WPA.globals.eventTypes).each(function(index, item) {
-								jQuery("#addResultEventSubType").append('<option value="' + item.id + '">' + item.description + '</option>');
+							jQuery.each(WPA.globals.eventTypes, function(id, name) {
+								jQuery("#addResultEventSubType").append('<option value="' + id + '">' + name + '</option>');
 							});
 
 							// bind blur event to display name select field

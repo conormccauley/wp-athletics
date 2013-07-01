@@ -1,24 +1,28 @@
-// Autocomplete by Category
+/*
+ * Custom jQuery Widgets
+ */
 
-jQuery.widget( "custom.catcomplete", jQuery.ui.autocomplete, {
-_renderMenu: function( ul, items ) {
-  var that = this,
-    currentCategory = "";
-  jQuery.each( items, function( index, item ) {
-    if ( item.category != currentCategory ) {
-      ul.append( "<li class='ui-autocomplete-category'>" + WPA.getProperty('wpa_search_category_' + item.category) + "</li>" );
-          currentCategory = item.category;
-        }
-        that._renderItemData( ul, item );
-      });
-    }
-  });
+function initCustom() {
+	
+	// Custom Autocomplete
+	jQuery.widget( "custom.catcomplete", jQuery.ui.autocomplete, {
+	  _renderMenu: function( ul, items ) {
+	  var that = this,
+	  currentCategory = "";
+	  jQuery.each( items, function( index, item ) {
+	    if ( item.category != currentCategory ) {
+	      ul.append( "<li class='ui-autocomplete-category'>" + WPA.getProperty('wpa_search_category_' + item.category) + "</li>" );
+	          currentCategory = item.category;
+	        }
+	        that._renderItemData( ul, item );
+	      });
+	    }
+	});
 
-// Custom combo box
-(function( $ ) {
-    $.widget( "custom.combobox", {
+	// Custom combo box
+    jQuery.widget( "custom.combobox", {
       _create: function() {
-        this.wrapper = $( "<span>" )
+        this.wrapper = jQuery( "<span>" )
           .addClass( "custom-combobox" )
           .insertAfter( this.element );
  
@@ -39,11 +43,11 @@ _renderMenu: function( ul, items ) {
       },
       
       _highlight: function() {
-    	  $(this.input).removeClass('ui-state-default').addClass(this.selectClass);
+    	  jQuery(this.input).removeClass('ui-state-default').addClass(this.selectClass);
       },
       
       _unhighlight: function() {
-    	  $(this.input).addClass('ui-state-default').removeClass(this.selectClass);
+    	  jQuery(this.input).addClass('ui-state-default').removeClass(this.selectClass);
       },
  
       _createAutocomplete: function() {
@@ -51,7 +55,7 @@ _renderMenu: function( ul, items ) {
         var selected = this.element.children( ":selected" ),
           value = selected.val() ? selected.text() : "";
  
-        this.input = $( "<input>" )
+        this.input = jQuery( "<input>" )
           .appendTo( this.wrapper )
           .val( value )
           .attr( "title", "" )
@@ -60,7 +64,7 @@ _renderMenu: function( ul, items ) {
           .autocomplete({
             delay: 0,
             minLength: 0,
-            source: $.proxy( this, "_source" )
+            source: jQuery.proxy( this, "_source" )
           })
           .tooltip({
             tooltipClass: "ui-state-highlight"
@@ -93,7 +97,7 @@ _renderMenu: function( ul, items ) {
         var input = this.input;
         var me = this;
  
-        this.button = $( "<a>" )
+        this.button = jQuery( "<span>" )
           .attr( "tabIndex", -1 )
           .appendTo( this.wrapper )
           .button({
@@ -110,9 +114,9 @@ _renderMenu: function( ul, items ) {
       },
  
       _source: function( request, response ) {
-        var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
+        var matcher = new RegExp( jQuery.ui.autocomplete.escapeRegex(request.term), "i" );
         response( this.element.children( "option" ).map(function() {
-          var text = $( this ).text();
+          var text = jQuery( this ).text();
           if ( this.value && ( !request.term || matcher.test(text) ) )
             return {
               label: text,
@@ -134,7 +138,7 @@ _renderMenu: function( ul, items ) {
           valueLowerCase = value.toLowerCase(),
           valid = false;
         this.element.children( "option" ).each(function() {
-          if ( $( this ).text().toLowerCase() === valueLowerCase ) {
+          if ( jQuery( this ).text().toLowerCase() === valueLowerCase ) {
             this.selected = valid = true;
             return false;
           }
@@ -174,19 +178,19 @@ _renderMenu: function( ul, items ) {
       },
       
       disable: function() {
-    	  this.input.prop('disabled', true);
+    	  this.input.prop('disabled', true).addClass( "ui-corner-all" );
     	  this.button.hide();
       },
       
       enable: function() {
-    	  this.input.prop('disabled', false);
+    	  this.input.prop('disabled', false).removeClass( "ui-corner-all" );;
     	  this.button.remove();
     	  this._createShowAllButton();
       },
       
       setValue : function(value) {
 	    this.element.val(value);
-	    this.input.val($("#" + this.bindings[0].id + " option[value='" + value + "']").text());
+	    this.input.val(jQuery("#" + this.bindings[0].id + " option[value='" + value + "']").text());
       },
       
       getLabel: function() {
@@ -198,4 +202,4 @@ _renderMenu: function( ul, items ) {
         this.element.show();
       }
     });
-})( jQuery );
+}

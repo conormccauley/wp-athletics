@@ -8,6 +8,9 @@ WPA.Ajax = {
 	 * sets up the object with the AJAX url and security nonce, also retrieves language properties
 	 */
 	setup: function(url, nonce, userId, callbackFn, skipLoadGlobals) {
+		// create custom widgets
+		initCustom();
+		
 		this.url = url;
 		WPA.userId = userId;
 		this.nonce = nonce;

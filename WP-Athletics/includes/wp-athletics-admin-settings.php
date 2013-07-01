@@ -52,11 +52,18 @@ if(!class_exists('WP_Athletics_Admin')) {
 				// The "page" query string value must be equal to the slug
 				// of the Settings admin page we defined earlier, which in
 				// this case equals "myplugin-settings".
-				$settings_link = '<a href="' . get_bloginfo('wpurl') . '/wp-admin/admin.php?page=wp-athletics-admin-settings">Settings</a>';
+				$settings_link = '<a href="' . get_bloginfo('wpurl') . '/wp-admin/admin.php?page=wp-athletics-settings">Settings</a>';
 				array_unshift( $links, $settings_link );
 			}
 
 			return $links;
+		}
+
+		/**
+		 * Enqueues scripts and styles
+		 */
+		public function enqueue_scripts_and_styles() {
+			$this->enqueue_common_scripts_and_styles();
 		}
 
 		/**
@@ -69,7 +76,6 @@ if(!class_exists('WP_Athletics_Admin')) {
 			else {
 				global $current_user;
 				$nonce = wp_create_nonce( $this->nonce );
-				$this->enqueue_scripts_and_styles();
 			?>
 				<script type="text/javascript">
 					jQuery(document).ready(function() {

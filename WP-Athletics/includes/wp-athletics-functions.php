@@ -27,7 +27,7 @@ if(!class_exists('WPA_Base')) {
 		 * Constructor for base class, reads the db object and sets as a global
 		 **/
 		public function __construct($db) {
-			wpa_log(get_class($this) . ' class instantiated successfully');
+
 			$this->wpa_db = $db;
 
 			// add actions
@@ -38,6 +38,7 @@ if(!class_exists('WPA_Base')) {
 			add_action( 'wp_ajax_wpa_get_user_profile', array ( $this, 'get_user_profile') );
 			add_action( 'wp_ajax_wpa_search_autocomplete', array ( $this, 'search_autocomplete') );
 			add_action( 'wp_ajax_wpa_get_user_oldest_result_year', array ( $this, 'get_user_oldest_result_year') );
+			add_action( 'admin_enqueue_scripts', array ($this, 'enqueue_common_scripts_and_styles' ) );
 		}
 
 		/**
@@ -46,6 +47,9 @@ if(!class_exists('WPA_Base')) {
 		public function load_global_data() {
 			global $wpa_lang;
 			global $wpa_settings;
+
+			wpa_log('loading global data');
+
 			$age_cats = $this->get_age_categories();
 			$sub_types = $this->get_event_sub_type();
 			$event_cats = $this->wpa_db->get_event_categories();
@@ -193,26 +197,27 @@ if(!class_exists('WPA_Base')) {
 		}
 
 		/**
+		 * Creates a display page
+		 */
+		public function generate_page( $title, $status = 'publish') {
+			$page = array(
+					'post_title' => $title,
+					'post_content' => '',
+					'post_status' => $status,
+					'post_type' => 'page',
+					'comment_status' => 'closed',
+					'ping_status' => 'closed',
+					'post_category' => array(1)
+			);
+			return wp_insert_post( $page );
+		}
+
+		/**
 		 * gets an array of event sub types from the settings or uses default value
 		 */
 		public function get_event_sub_type() {
-			$event_sub_types_str = get_option( 'wp-athletics_event_sub_types', 'R:Road;XC:XC;T:Track;TR:Trail' );
-
-			$return_value = array();
-
-			$sub_types = explode( ';', $event_sub_types_str );
-			if( count( $sub_types ) > 0) {
-				foreach ( $sub_types as $sub_type_str ) {
-					$sub_type = explode( ':', $sub_type_str );
-					if( count($sub_type) == 2 ) {
-						array_push( $return_value, array(
-								'id' => $sub_type[0],
-								'description' => $sub_type[1]
-						));
-					}
-				}
-			}
-			return $return_value;
+			global $wpa_settings;
+			return get_option( 'wp-athletics_event_sub_types', $wpa_settings['default_terrain_categories'] );
 		}
 
 		/**
@@ -224,26 +229,12 @@ if(!class_exists('WPA_Base')) {
 		}
 
 		/**
-		 * enqueues the required JS scripts for front end or admin pages
+		 * enqueues the common required JS scripts for front end or admin pages
 		 */
-		public function enqueue_scripts_and_styles() {
+		public function enqueue_common_scripts_and_styles() {
 			global $current_user;
 
-			// register common scripts and styles
-			wp_register_script( 'wpa-functions', WPA_PLUGIN_URL . '/resources/scripts/wpa-functions.js' );
-			wp_register_script( 'wpa-custom', WPA_PLUGIN_URL . '/resources/scripts/wpa-custom.js' );
-			wp_register_script( 'wpa-ajax', WPA_PLUGIN_URL . '/resources/scripts/wpa-ajax.js' );
-
 			if( !is_admin() ) {
-				$theme = strtolower(get_option( 'wp-athletics_theme', 'default') );
-
-				wpa_log('enqueuing standard scripts');
-
-				// register scripts and styles
-				wp_register_script( 'datatables', WPA_PLUGIN_URL . '/resources/scripts/jquery.dataTables.min.js' );
-				wp_register_style( 'datatables', WPA_PLUGIN_URL . '/resources/css/jquery.dataTables.css' );
-				wp_register_style( 'wpa_style', WPA_PLUGIN_URL . '/resources/css/wpa-style.css' );
-				wp_register_style( 'wpa_theme_jqueryui', WPA_PLUGIN_URL . '/resources/css/themes/' . $theme . '/jquery-ui.css' );
 
 				// enqueue scripts
 				wp_enqueue_script( 'datatables' );
@@ -254,6 +245,7 @@ if(!class_exists('WPA_Base')) {
 				wp_enqueue_script( 'jquery-ui-tooltip' );
 				wp_enqueue_script( 'jquery-effects-highlight' );
 				wp_enqueue_script( 'jquery-ui-datepicker' );
+
 				wp_enqueue_script( 'wpa-custom' );
 				wp_enqueue_script( 'wpa-functions' );
 				wp_enqueue_script( 'wpa-ajax' );
@@ -265,7 +257,6 @@ if(!class_exists('WPA_Base')) {
 				wp_enqueue_style( 'wpa_style' );
 			}
 			else {
-				wpa_log('enqueuing admin scripts');
 
 				// register scripts and styles
 				wp_register_style( 'wpa_admin_style', WPA_PLUGIN_URL . '/resources/css/wpa-admin-style.css' );
@@ -273,7 +264,7 @@ if(!class_exists('WPA_Base')) {
 				wp_register_script( 'wpa-admin', WPA_PLUGIN_URL . '/resources/scripts/wpa-admin.js' );
 
 				// enqueue scripts
-				wp_enqueue_script('jquery');
+				wp_enqueue_script( 'jquery' );
 				wp_enqueue_script( 'jquery-ui-core' );
 				wp_enqueue_script( 'jquery-ui-tabs' );
 				wp_enqueue_script( 'jquery-ui-dialog' );

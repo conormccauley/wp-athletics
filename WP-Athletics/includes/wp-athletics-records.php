@@ -8,6 +8,8 @@ if(!class_exists('WP_Athletics_Records')) {
 
 	class WP_Athletics_Records extends WPA_Base {
 
+		public $nonce = 'wpathleticsrecords';
+
 		/**
 		 * default constructor
 		 */
@@ -16,9 +18,80 @@ if(!class_exists('WP_Athletics_Records')) {
 		}
 
 		/**
+		 * Enqueues scripts and styles
+		 */
+		public function enqueue_scripts_and_styles() {
+			// common scripts and styles
+			$this->enqueue_common_scripts_and_styles();
+
+			wp_enqueue_script( 'wpa-records' );
+		}
+
+		/**
+		 * Generates the records for male gender
+		 */
+		public function records_male() {
+			$this -> records_by_gender( 'M' );
+		}
+
+		/**
+		 * Generates the records for female gender
+		 */
+		public function records_female() {
+			$this -> records_by_gender( 'F' );
+		}
+
+		/**
+		 * Generates the records for a specific gender
+		 */
+		protected function records_by_gender( $gender ) {
+			$this -> records( array( 'gender' => $gender ) );
+		}
+
+		/**
+		 * Generates the records pages
+		 */
+		public function create_pages() {
+			$pages_created = get_option( 'wp-athletics_pages_created', array() );
+
+			// generate pages for male and female records
+			$female_page_id = $this->generate_page( $this->get_property('records_female_page_title') );
+			$male_page_id = $this->generate_page( $this->get_property('records_male_page_title') );
+
+			// by default the records page for both genders is disabled
+			$page_id = $this->generate_page( $this->get_property('records_page_title'), 'draft' );
+
+			// store the page ids as options
+			if( $female_page_id ) {
+				add_option('wp-athletics_records_female_page_id', $female_page_id, '', 'yes');
+				wpa_log('Female Records page created!');
+				array_push( $pages_created, $female_page_id );
+			}
+
+			if( $male_page_id) {
+				add_option('wp-athletics_records_male_page_id', $male_page_id, '', 'yes');
+				wpa_log('Male Records page created!');
+				array_push( $pages_created, $male_page_id );
+			}
+
+			if( $page_id) {
+				add_option('wp-athletics_records_page_id', $page_id, '', 'yes');
+				wpa_log('Generic Records page created!');
+				array_push( $pages_created, $page_id );
+			}
+
+			// set option to determine which mode we are using (separate or single pages for records)
+			add_option('wp-athletics_records_mode', 'separate', '', 'yes');
+
+			// update option of which pages we created (so they can be deleted when plugin uninstalled)
+			update_option( 'wp-athletics_pages_created', $pages_created );
+		}
+
+		/**
 		 * Generates a 'records' page when the shortcode [wpa-records] is used
 		 */
 		public function records( $atts ) {
+
 			$this->enqueue_scripts_and_styles();
 
 			$displayGenderOption = true;
@@ -33,12 +106,8 @@ if(!class_exists('WP_Athletics_Records')) {
 				}
 			}
 
-			// custom script
-			wp_register_script( 'wpa-records', WPA_PLUGIN_URL . '/resources/scripts/wpa-records.js' );
-			wp_enqueue_script( 'wpa-records' );
-
 			global $current_user;
-			$nonce = wp_create_nonce( WPA_NONCE );
+			$nonce = wp_create_nonce( $this->nonce );
 			?>
 				<script type='text/javascript'>
 					jQuery(document).ready(function() {
