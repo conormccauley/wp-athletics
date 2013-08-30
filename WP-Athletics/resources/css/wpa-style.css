@@ -1,5 +1,5 @@
 .wpa {
-	margin-top: 5px;
+	margin-top: 10px;
 }
 
 .wpa-content {
@@ -8,7 +8,7 @@
 	width: 100% !important;
 }
 	
-.wpa-tabs a {
+.wpa-tabs a, #tabs a {
 	border: 0 !important;
 }
 
@@ -36,18 +36,22 @@
 	margin: 25px 10px 0px 0px;
 }
 
+.wpa-table-bottom {
+	border-bottom: 1px solid #CCCCCC;
+}
+
 .wpa a:hover {
 	color: #000;
 	text-decoration: none !important;
 }
 
-.wpa-tabs ul {
+.wpa-tabs ul, #tabs ul {
 	margin: 0px !important;
 	padding: 0px !important;
 	border: none !important;
 }
 
-.wpa-tabs ul li {
+.wpa-tabs ul li, #tabs ul li {
 	width: auto !important;
 	line-height: 1em !important;
 	padding: 0px !important;
@@ -89,6 +93,10 @@
 	width: 120px !important;
 }
 
+.wpa-field-noborder {
+	border: 0px !important;
+}
+
 .wpa-profile-photo {
 	height: 120px;
 	width: 120px;
@@ -116,14 +124,19 @@
 	float: right;
 }
 
-#wpa-profile-add-result button {
-	font-size: 11px;
+#wpa-profile-add-result button, .wpa-event-info-actions button  {
+	font-size: 11px !important;
 	height: 25px;
+}
+
+#wpa-event-info-add-result {
+	margin-top: 20px;
 }
 
 .wpa-profile-field {
 	height: 25px;
 	padding-top: 5px;
+	text-align: left;
 }
 
 .wpa-profile-field label {
@@ -148,9 +161,10 @@
 
 .wpa-filters input {
 	background: none repeat scroll 0 0 #FFFFFF;
+	font-size: 12px;
 }
 
-.wpa-profile-field input {
+.wpa-profile-field input[type=text] {
 	width: 150px;
 	background: none repeat scroll 0 0 #FFFFFF !important;
 }
@@ -183,10 +197,18 @@
 
 .wpa-add-result-field .custom-combobox {
 	height: 27px;
+	margin-left: 2px;
 }
 
 .wpa-event-info {
 	margin: 5px 0px 5px 0px;
+	float: left;
+}
+
+.wpa-event-info-actions {
+	width: 150px;
+	float: right;
+	text-align: right;
 }
 
 .wpa-event-info-title {
@@ -230,7 +252,7 @@
 }
 
 .records-highlight-my-result {
-	background-color: yellow !important;
+	background-color: rgb(241, 234, 148) !important;
 }
 
 .wpa-rank {
@@ -242,14 +264,21 @@
     padding-right: 1px;
     padding-top: 4px;
     width: 20px;
+    cursor: pointer;
 }
 
 .wpa-rank.rank-first {
 	background-image: url(../images/circle-green.png);
+	color: white;
 }
 
 .wpa-rank.rank-top-10 {
 	background-image: url(../images/circle-blue.png);
+	color: white;
+}
+
+.records-top-10-seperator {
+	border-bottom: 1px solid #c0c0c0;
 }
 
 .ui-datepicker-trigger {
@@ -259,7 +288,7 @@
     top: 4px;
 }
 
-.add-result-help {
+.wpa-help {
 	height: 20px;
 	width: 20px;
 	display: inline-block;
@@ -288,10 +317,9 @@
 	top: 5px;
 	left: -55px;
 	background: url(../images/grayx.png) no-repeat;
-	
 }
 
-.filter-event-name-remove {
+.filter-name-remove {
     background: url("../images/grayx.png") no-repeat scroll 0 0 transparent;
     cursor: pointer;
     display: inline-block;
@@ -306,7 +334,7 @@
 	padding: 0px !important;
 }
 
-.wpa-tabs {
+.wpa-tabs, #tabs {
 	border: none !important;
 }
 
@@ -319,16 +347,25 @@
 	line-height: 1.5em;
 }
 
+#wpa-error-dialog-text ul {
+	list-style-type: circle;
+}
+
+#wpa-error-dialog-text {
+	color: rgb(214, 16, 16);
+	margin-left: 15px;
+}
+
 .wpa-filters {
 	float: left;
-	width: 800px;
+
 }
 
 .wpa-filters div {
 	display: inline-block;
 }
 
-.wpa-filters #filterEventName, .wpa-filters #profileFilterEventName {
+.wpa-filters #filterEventName, .wpa-filters #profileFilterEventName, .wpa-filters #filterAthleteName {
 	width: 190px;
 }
 
@@ -396,6 +433,18 @@ table.display {
 	margin: 0px !important;
 }
 
+.datatable-checkbox {
+	display: inline-block;
+	height: 12px;
+	width: 20px;
+}
+
+.datatable-checkbox input {
+	position: relative;
+	top: -3px;
+	height: 12px;
+}
+
 .datatable-icon {
 	width: 20px;
 	height: 20px;
@@ -403,10 +452,16 @@ table.display {
 	display: inline-block;
 	background-position: 0 4px;
 	cursor: pointer;
+	text-decoration: none !important;
+	border: none !important;
 }
 
 .datatable-icon.garmin {
 	background-image: url(../images/garmin.png)
+}
+
+.datatable-icon.rankings {
+	background-image: url(../images/rankings.png)
 }
 
 .datatable-icon.delete {
@@ -419,6 +474,10 @@ table.display {
 
 .ui-widget-content {
 	font-size: 12px;
+}
+
+#rankingsDisplayOptions {
+	margin: 3px 0px;
 }
 
 /** CUSTOM WIDGETS **/
@@ -438,7 +497,7 @@ table.display {
 }
   
 .custom-combobox-toggle {
-  position: absolute;
+  position: absolute !important;
   top: 0;
   bottom: 0;
   margin-left: -1px;
@@ -449,7 +508,7 @@ table.display {
 }
 
 .filter-highlight {
-	background: #F7FF21 !important;
+	background: #BDF79C !important;
 }
 
 .custom-combobox-input {
@@ -471,4 +530,57 @@ input.ui-state-default {
 
 .ui-tabs {
     padding: 0;
+}
+
+.wpa-select-options {
+	display: none;
+	margin: 2px 0px 2px 0px;
+}
+
+.wpa-select-options a {
+	margin-right: 5px;
+}
+
+.ui-autocomplete {
+	z-index: 99999 !important;
+}
+
+.success-message {
+	background: #d0f3d0;
+	border: 1px solid #4e9a4e;
+	padding: 10px;
+	border-radius: 5px;
+	font-size: 12px;
+}
+
+#wpa-embedded-results-bottom {
+	height: 20px;
+	font-size: 11px;
+	color: #a0a0a0 !important;
+}
+
+#wpa-embedded-results-options {
+	float: right;
+}
+
+#wpa-embedded-results-options span:hover {
+	color: black;
+}
+
+#wpa-embedded-results-options span {
+	display: inline-block;
+	margin-right: 3px;
+	cursor: pointer;
+	text-decoration: underline;
+	float: right;
+	font-weight: normal !important;
+}
+
+.wpa-event-results-info {
+	float: left;
+}
+
+.tip {
+    background-color: white;
+    display:block;
 }

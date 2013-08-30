@@ -10,9 +10,9 @@ if(!class_exists('WP_Athletics_Demo')) {
 
 		public $nonce = 'wpathleticsdemo';
 
-		public $NUMBER_USERS = 200;
-		public $NUMBER_RESULTS = 5000;
-		public $NUMBER_EVENTS = 1000;
+		public $NUMBER_USERS = 500;
+		public $NUMBER_RESULTS = 20000;
+		public $NUMBER_EVENTS = 5000;
 
 		public $users = array();
 		public $events = array();
@@ -31,12 +31,16 @@ if(!class_exists('WP_Athletics_Demo')) {
 		public function create_sample_data() {
 			wpa_log('Generating sample data');
 
+			wpa_log('Clearing old sample data');
 			$this-> wpa_db -> clear_sample_data();
 
+			wpa_log('Generating sample users');
 			$this -> generate_sample_users();
 
+			wpa_log('Generating random events');
 			$this -> generate_random_events();
 
+			wpa_log('Generating random results');
 			$this -> generate_random_results();
 		}
 
@@ -45,13 +49,13 @@ if(!class_exists('WP_Athletics_Demo')) {
 		 */
 		public function generate_random_user() {
 
-			$female_names = array('Melanie', 'Jill', 'Fidelma', 'Roya', 'Stella', 'Pippa', 'Rhona', 'Gillian', 'Jenny', 'Melissa', 'Jordan', 'Ann', 'Belinda', 'Mary', 'Sinead', 'Eileen', 'Rosy', 'Jackie');
-			$male_names = array('Harry', 'Jack', 'John', 'Garry', 'Jason', 'Jonathan', 'Chris', 'Steve', 'Tom', 'James', 'Jerry', 'Rob', 'Conor', 'Barry', 'Evan', 'Ronan', 'Larry', 'Rory', 'Bryan', 'Colin', 'Percy', 'Winston');
-			$surnames = array('Kennedy', 'Scott', 'McDonald', 'Price', 'Cooper', 'Dildo', 'Dickhead', 'McCauley', 'Lennon', 'Lauraeus', 'Kelly', 'Murphy', 'Perry', 'Jackson', 'McIlroy', 'Connors', 'Heuston', 'Simpson', 'Fielding');
+			$female_names = array('Sassy', 'Dee', 'Jess', 'Mary', 'Joan', 'Tarja', 'Nelly', 'Kathleen', 'Saoirse', 'Johanna', 'Melanie', 'Jill', 'Fidelma', 'Roya', 'Stella', 'Pippa', 'Rhona', 'Gillian', 'Jenny', 'Melissa', 'Jordan', 'Ann', 'Belinda', 'Mary', 'Sinead', 'Eileen', 'Rosy', 'Jackie');
+			$male_names = array('Cormac', 'Stephen', 'Jack', 'Baz', 'Larry', 'Vernon', 'Steffan', 'Zach', 'Pete', 'Harry', 'Jack', 'John', 'Garry', 'Jason', 'Jonathan', 'Chris', 'Steve', 'Tom', 'James', 'Jerry', 'Rob', 'Conor', 'Barry', 'Evan', 'Ronan', 'Larry', 'Rory', 'Bryan', 'Colin', 'Percy', 'Winston');
+			$surnames = array('Wilson', 'Gregson', 'Mahony', 'Moorhouse', 'Smith', 'Lyster', 'Sliney', 'Jonas', 'Fredrikson', 'Stenson', 'Ailsbury', 'Black', 'White', 'Green', 'Shaw', 'Kennedy', 'Scott', 'McDonald', 'Price', 'Cooper', 'McCauley', 'Lennon', 'Lauraeus', 'Kelly', 'Murphy', 'Perry', 'Jackson', 'McIlroy', 'Connors', 'Heuston', 'Simpson', 'Fielding');
 
 			$gender = $this -> trueOrFalse() ? 'M' : 'F';
 
-			$age_cats = array_keys($this -> get_age_categories());
+			$age_cats = array_keys($this -> wpa_db -> get_age_categories());
 			$age_cat_idx = array_rand( $age_cats );
 			$age_cat = $age_cats[$age_cat_idx];
 
@@ -89,7 +93,7 @@ if(!class_exists('WP_Athletics_Demo')) {
 					'gender' => $user['gender'],
 					'time' => $time
 				);
-				$this -> wpa_db -> update_event( $data );
+				$this -> wpa_db -> update_result( $data );
 			}
 		}
 
@@ -99,7 +103,7 @@ if(!class_exists('WP_Athletics_Demo')) {
 		public function generate_random_events() {
 			$event_locations = array('Dublin', 'Waterford', 'San Francisco', 'London', 'Paris', 'Wexford', 'Enniscorthy', 'Can Tho', 'Bermuda', 'Caribbean', 'Edinburgh', 'Chicago', 'Japan', 'China', 'Louth', 'Stockholm', 'Malmo', 'Venice', 'Vientiane', 'Kilkenny');
 			$event_sub_names = array('Docklands', 'Warriers', 'Annual', 'Rock n Roll', 'Strawberry', 'Summer', 'Winter', 'Spring', 'Waterside', 'Coastal', 'Hillside', 'Mountain');
-			$event_sub_types = $this -> get_event_sub_type();
+			$event_sub_types = $this -> wpa_db -> get_event_sub_types();
 			$event_cats = $this -> wpa_db -> get_event_categories();
 
 			for ( $i = 1; $i <= $this -> NUMBER_EVENTS; $i++) {
@@ -259,13 +263,17 @@ if(!class_exists('WP_Athletics_Demo')) {
 					$random_user = $this -> generate_random_user();
 					$user_id = wp_create_user( $user_name, $user_name, $user_email );
 					$this->wpa_db->update_user_display_name( $user_id, $random_user['name'] );
+
+					// add to meta
+					update_user_meta( $user_id, 'wp-athletics_dob', '04 Apr 1983' );
+					update_user_meta( $user_id, 'wp-athletics_gender', $random_user['gender'] );
+
 					array_push( $this->users, array(
 							'user_id' => $user_id,
 							'age_cat' => $random_user['age_category'],
 							'gender' => $random_user['gender']
 						)
 					);
-					//wpa_log('user ' . $random_user['name'] . ' with age cat ' . $random_user['age_category'] . ' created');
 				} else {
 					$random_password = __('User already exists.  Password inherited.');
 				}

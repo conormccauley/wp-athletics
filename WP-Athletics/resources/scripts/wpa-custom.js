@@ -18,6 +18,14 @@ function initCustom() {
 	      });
 	    }
 	});
+	
+	jQuery.widget("ui.tooltip", jQuery.ui.tooltip, {
+	    options: {
+	        content: function () {
+	            return jQuery(this).prop('title');
+	        }
+	    }
+	});
 
 	// Custom combo box
     jQuery.widget( "custom.combobox", {
@@ -27,12 +35,14 @@ function initCustom() {
           .insertAfter( this.element );
  
         this.selectClass = this.options.selectClass;
+        this.defaultValue = this.options.defaultValue;
         this.element.hide();
         this._createAutocomplete();
         this._createShowAllButton();
       },
       
       _clicked: function() {
+    	  WPA.globals.supressComboClickEvents = true;
     	  if(this.input.autocomplete( "widget" ).is( ":visible" )) {
     		  this.input.autocomplete( "close" );
     	  }
@@ -40,6 +50,7 @@ function initCustom() {
     		  this.input.blur();
     		  this.input.autocomplete( "search", "" );
     	  }
+    	  WPA.globals.supressComboClickEvents = false;
       },
       
       _highlight: function() {
@@ -80,7 +91,7 @@ function initCustom() {
             });
             
             if(this.selectClass) {
-	            if(ui.item.option.value == '' || ui.item.option.value == 'all') {
+	            if(ui.item.option.value == '' || ui.item.option.value == 'all' || ui.item.option.value == this.defaultValue) {
 	            	this._unhighlight();
 	            }
 	            else {
@@ -212,3 +223,11 @@ jQuery.fn.center = function () {
                                                 jQuery(window).scrollLeft()) + "px");
     return this;
 }
+
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
+};

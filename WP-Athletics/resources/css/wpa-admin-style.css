@@ -6,6 +6,7 @@
 .wpa-admin-intro {
 	padding: 10px;
 	font-size: 14px;
+	line-height: 1.3em;
 }
 
 .wpa-admin-intro ul {
@@ -13,17 +14,223 @@
     padding-left: 10px;
 }
 
+.wpa-admin-intro h3 {
+	text-decoration: underline;
+}
+
+#wpa-admin-settings-container {
+	border-bottom: 1px solid #eeeeee;
+}
+
 .wpa-admin-setting {
-	margin-bottom: 2px;
+	margin-bottom: 3px;
+	width: 400px;
 }
 
 .wpa-admin-setting label {
 	text-align: right;
-	width: 70px;
+	width: 100px;
 	display: inline-block;
 }
 
 .wpa-admin-setting select {
 	height: 22px;
 	width: 100px;
+}
+
+#event-cat-table-container {
+	width: 620px;
+}
+
+#age-cat-table-container {
+	width: 420px;
+}
+
+.wpa-admin-editable-disabled {
+	border: 0px !important;
+	background: none !important;
+}
+
+.wpa-admin-editable-save-cancel {
+	display: none;
+	padding-left: 10px;
+}
+
+.wpa-admin-title {
+	float: left;
+}
+
+.wpa-admin-create-button {
+	float: right;
+	font-size: 11px;
+	margin-top: 8px;
+}
+
+#create-event-button,#create-athlete-button {
+	float: right;
+	font-size: 10px;
+	margin-right: 20px;
+}
+
+.wpa-admin-editable-save-cancel span {
+	font-size: 11px;
+	cursor: pointer;
+	text-decoration: underline;
+	color: blue;
+}
+
+.wpa-admin-add-new-row td {
+	background: yellow !important;
+}
+
+#wpa-admin-manage-results, #wpa-admin-manage-events {
+	margin: 0px 20px 0px 0px;
+}
+
+.wpa-add-result-field input {
+	height: 28px;
+}
+
+.wpa-add-result-field .custom-combobox .custom-combobox-input {
+  height: 17px !important;
+}
+
+#merge-events-dialog, #delete-events-confirm-dialog {
+	text-align: center;
+}
+
+.input-cancel {
+	height: 20px;
+	width: 20px;
+	display: inline-block;
+	position: relative;
+	cursor: pointer;
+	top: 6px;
+	left: -30px;
+	background: url(../images/grayx.png) no-repeat;
+}
+
+#delete-events-confirm-dialog #event-count, #delete-events-confirm-dialog #result-count {
+	font-weight: bold;
+}
+
+#delete-events-warning {
+	color: red;
+	font-weight: bold;
+}
+
+.wpa-select-options span, .wpa-admin-link {
+	color: blue;
+	font-size: 11px;
+	font-weight: bold;
+	text-decoration: underline;
+	cursor: pointer;
+	display: inline-block;
+	margin-right: 5px;
+}
+
+.wpa-admin-link-small {
+	color: blue;
+	font-size: 10x;
+	text-decoration: underline;
+	cursor: pointer;
+	display: inline-block;
+}
+
+.add-results-left div {
+	float: left;
+}
+
+#add-result-or {
+	font-size: 14px;
+	font-weight: bold;
+	margin: 6px;
+}
+
+#add-results-step {
+	margin-top: 30px;
+}
+
+.wpa-add-result-field label {
+	width: 75px;
+}
+
+#add-result-time {
+	margin-top: 10px;
+}
+
+#add-result-submit {
+	margin: 10px 0px 0px 82px;
+	font-size: 11px;
+}
+
+#show-result-success {
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 20px;
+	width: 300px;
+	text-align: center;
+	font-size: 14px;
+}
+
+#wpa-print-rankings {
+	margin: 10px 20px;
+}
+
+#wpaPrintHeaderLeft,#wpaPrintHeaderRight {
+	margin-top: 10px;
+	width: 25%;
+	float: left;
+}
+
+#wpaPrintHeaderCenter {
+	width: 50%;
+	float: left;
+}
+
+#wpaPrintHeader {
+	text-align: center;
+	width: 100%;
+}
+
+#wpaPrintHeaderMain {
+	font-size: 25px;
+	font-weight: bold;
+}
+
+#wpaPrintHeaderClubName {
+	color: gray;
+	font-size: 13px;
+	padding: 10px 0px 10px 0px;
+}
+
+#wpaPrintHeaderSub {
+	padding: 10px 0px;
+}
+
+#generateRankingsButton button {
+	margin-top: -1px;
+	font-size: 11px;
+}
+
+#wpaPrintHeaderUrl {
+	font-weight: bold;
+	font-size: 15px;
+	text-decoration: underline;
+}
+
+#wpaPrintFooter div {
+	float: right;
+	width: 400px;
+	margin-top: 5px;
+	font-size: 12px;
+	color: gray;
+	text-align: right;
+}
+
+#wpaPrintHeaderRight div {
+	color: gray;
+	margin: 0px 5px 0px 0px;
+	font-size: 15px;
+	text-align: right;
 }

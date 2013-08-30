@@ -3,150 +3,6 @@
  */
 
 WPA.MyResults = {
-
-	/**
-	 * Enables or disables the pre selected event when adding a result
-	 */
-	toggleAddResultEvent: function(enable) {
-		if(enable) {
-			// reset the event category id
-			jQuery('#addResultEventId').val('');
-			jQuery('#addResultEventName').val('').focus();
-			jQuery('#addResultEventCategory').combobox('setValue', '');
-			jQuery('#addResultEventSubType').combobox('setValue', '');
-			jQuery('#addResultDate').val('');
-			jQuery('#addResultAgeCategoryDisplay, #addResultAgeCategory').val('');
-			jQuery('#addResultEventLocation').val('');
-		}
-		jQuery('#addResultDialog .ui-datepicker-trigger').toggle(enable);
-		jQuery('.add-result-cancel-event').toggle(!enable);
-		jQuery('#addResultEventName').prop('disabled', !enable);
-		jQuery('#addResultDate').prop('disabled', !enable);
-		jQuery('#addResultEventLocation').prop('disabled', !enable);
-		
-		// selects
-		jQuery('#addResultEventSubType').combobox('disabled', !enable);
-		jQuery('#addResultEventCategory').combobox('disabled', !enable);
-	},
-		
-	/**
-	 * Validates the add result form and adds error class if required
-	 */
-	validateAddResultForm: function() {
-		var valid = true;
-		
-		var requiredFields = jQuery('.add-result-required');
-		jQuery.each(requiredFields, function() {
-			var el = jQuery(this);
-			if(el.val() == '') {
-				if(el.is("select")) {
-					el.combobox('addCls', 'ui-state-error');
-				}
-				else {
-					el.addClass('ui-state-error');
-				}
-				valid = false;
-			}
-		});
-		
-		return valid;
-	},
-	
-	/**
-	 * Opens confirm dialog to deletes an event result
-	 */
-	deleteResult: function(id) {
-		jQuery("#result-delete-confirm").dialog({
-	      resizable: false,
-	      height:140,
-	      modal: true,
-	      buttons: {
-	        "Delete": function() {
-	          jQuery( this ).dialog("close");
-	          WPA.Ajax.deleteResult(id);
-	        },
-	        Cancel: function() {
-	          jQuery( this ).dialog( "close" );
-	        }
-	      }
-	    });
-	},
-	
-	/**
-	 * Opens the dialog to edit an event result
-	 */
-	editResult: function(id) {
-		WPA.toggleLoading(true);
-		jQuery("#addResultDialog").dialog("option", "title", WPA.getProperty('edit_result_title'));
-		WPA.Ajax.loadResultInfo(id);
-	},
-	
-	/**
-	 * callback for when event info has been requested on the add/update result screen
-	 */
-	loadEventInfoCallback: function(result) {
-		// inputs
-		jQuery('#addResultDate').removeClass('ui-state-error').datepicker('setDate', result.date);
-		jQuery('#addResultEventName').removeClass('ui-state-error').val(result.name);
-		jQuery('#addResultEventId').val(result.id);
-		jQuery('#addResultEventLocation').removeClass('ui-state-error').val(result.location).change();
-		
-		// selects
-		jQuery('#addResultEventCategory').combobox('setValue', result.event_cat_id).combobox('removeCls', 'ui-state-error');
-		jQuery('#addResultEventSubType').combobox('setValue', result.sub_type_id).combobox('removeCls', 'ui-state-error');
-		
-		if(WPA.lastUsedEventCat != result.event_cat_id) {
-			WPA.MyResults.triggerAddEventCategoryChange();
-		}
-		WPA.MyResults.toggleAddResultEvent(false);
-		WPA.MyResults.setAddResultAgeCategory(function() {
-			WPA.MyResults.toggleAddResultEvent(true);
-		});
-		
-		
-		WPA.lastUsedEventCat = result.event_cat_id;
-	},
-	
-	/**
-	 * loads the result information onto the update fields
-	 */
-	setResultUpdateInfo: function(result) {
-		// load the event info
-		WPA.Ajax.getEventInfo(result.event_id, function(_result) {
-			WPA.MyResults.loadEventInfoCallback(_result);
-			var time = WPA.millisecondsToTime(result.time);
-			jQuery("#addResultId").val(result.id);
-			jQuery('#addResultAgeCategoryDisplay').val(WPA.getAgeCategoryDescription(result.age_category));
-			jQuery('#addResultAgeCategory').val(result.age_category);
-			jQuery('#addResultPosition').val(result.position);
-			jQuery('#addResultGarminId').val(result.garmin_id);
-			jQuery('#addResultTimeHours').val(time.hours);
-			jQuery('#addResultTimeMinutes').val(time.minutes);
-			jQuery('#addResultTimeSeconds').val(time.seconds);
-			jQuery('#addResultTimeMilliSeconds').val(time.milliseconds);
-			
-			WPA.toggleLoading(false);
-			jQuery("#addResultDialog").dialog("open");
-		});
-	},
-	
-	/**
-	 * Triggers when the date field has changed on the "add result" screen, determines which age category the result falls into
-	 */
-	setAddResultAgeCategory: function(failCallbackFn) {
-	    var ageCat = WPA.calculateAthleteAgeCategory(jQuery('#addResultDate').val(), WPA.userDOB, true);
-	    if(ageCat && ageCat.id) {
-    		jQuery('#addResultAgeCategoryDisplay').val(ageCat.name);
-    		jQuery('#addResultAgeCategory').val(ageCat.id);
-	    }
-	    else {
-	    	WPA.alertError(WPA.getProperty('error_no_age_category'));
-	    	jQuery('#addResultDate').val('');
-	    	if(failCallbackFn) {
-	    		failCallbackFn();
-	    	}
-	    }
-	},
 	
 	/**
 	 * reads the profile photo url from the hidden input and populates as background image of the profile photo div
@@ -159,35 +15,21 @@ WPA.MyResults = {
 	},
 	
 	/**
-	 * set visiblity of time fields when event category changes on add result screen
-	 */
-	triggerAddEventCategoryChange: function() {
-		// set visibility of time fields
-		var fields = jQuery('div[time-format]');
-		jQuery.each(fields, function() {
-			jQuery(this).find('input').val('').removeClass('add-result-required');
-			jQuery(this).hide();
-		});
-		
-		var selectEl = jQuery("#addResultEventCategory");
-	
-		var timeFormatStr = jQuery('option:selected', selectEl).attr('time-format');
-		if(timeFormatStr) {
-			var timeFormats = timeFormatStr.split(':');
-			jQuery.each(timeFormats, function(i, format) {
-				jQuery('div[time-format="' + format + '"]').show().find('input').addClass('add-result-required');
-			});
-		}
-	},
-	
-	/**
 	 * reloads all results
 	 */
 	reloadResults: function() {
+		console.log('reloading results function');
 		// redraw the table
-		WPA.MyResults.myResultsTable.fnDraw();
-		// load personal bests
-		WPA.MyResults.getPersonalBests();
+		if(WPA.MyResults.currentTab == 'results') {
+			WPA.MyResults.myResultsTable.fnDraw();
+		}
+		else if(WPA.MyResults.currentTab == 'pb') {
+			// load personal bests
+			WPA.MyResults.getPersonalBests();
+		}
+		
+		// reload an event dialog if it is open
+		WPA.reloadEventResults();
 	},
 	
 	/**
@@ -201,53 +43,9 @@ WPA.MyResults = {
 			userId: WPA.userId,
 			ageCategory: WPA.filterAge,
 			eventSubTypeId: WPA.filterType,
-			eventDate: WPA.filterPeriod
+			eventDate: WPA.filterPeriod,
+			showAllCats: true
 		}, disableLoading);
-	},
-
-	/** 
-	 * validates and submits the add result form
-	 */
-	submitResult: function() {
-		if(WPA.MyResults.validateAddResultForm()) {
-			WPA.Ajax.updateResult({
-				resultId: jQuery('#addResultId').val(),
-				time: WPA.timeToMilliseconds(
-					jQuery('#addResultTimeHours').val(),
-					jQuery('#addResultTimeMinutes').val(),
-					jQuery('#addResultTimeSeconds').val(),
-					jQuery('#addResultTimeMilliSeconds').val()
-				),
-				eventId: jQuery('#addResultEventId').val(),
-				eventDate: jQuery('#addResultEventDate').val(),
-				eventName: jQuery('#addResultEventName').val(),
-				eventCategory: jQuery('#addResultEventCategory').val(),
-				eventSubType: jQuery('#addResultEventSubType').val(),
-				position: jQuery('#addResultPosition').val(),
-				garminId: jQuery('#addResultGarminId').val(),
-				ageCategory: jQuery("#addResultAgeCategory").val(),
-				eventLocation: jQuery('#addResultEventLocation').val(),
-				gender: WPA.userGender
-			}, function() {
-				// success function - load the results and close dialog
-				WPA.MyResults.resetAddResultForm();
-				
-				jQuery("#addResultDialog").dialog("close");
-				
-				// reload the results
-				WPA.MyResults.reloadResults();
-			});
-		}
-	},
-	
-	/**
-	 * resets the fields in the add result form
-	 */
-	resetAddResultForm: function() {
-		WPA.MyResults.toggleAddResultEvent(true);
-		jQuery('#addResultDialog form input,select').each(function() {
-			jQuery(this).val('');
-		});
 	},
 	
 	/** 
@@ -257,10 +55,11 @@ WPA.MyResults = {
 
 		// My Results table
 		WPA.MyResults.myResultsTable = jQuery('#my-results-table').dataTable(WPA.createTableConfig({
-			"bProcessing": true,
 			"bServerSide": true,
 			"sAjaxSource": WPA.Ajax.url,
 			"sServerMethod": "POST",
+			"sScrollX": "100%",
+			"bScrollCollapse": true,
 			"fnServerParams": function ( aoData ) {
 			    aoData.push( 
 			    	{name : 'action', value : 'wpa_get_results' },
@@ -282,12 +81,15 @@ WPA.MyResults = {
 				"mData": "event_name",
 				"mRender" : WPA.renderEventLinkColumn
 			},{
-				"mData": "event_location"
+				"mData": "event_location",
+				"mRender": WPA.renderEventLocationColumn
 			},{
 				"mData": "event_sub_type_id",
-				"mRender" : WPA.renderEventTypeColumn
+				"mRender" : WPA.renderEventTypeColumn,
+				"bVisible": false
 			},{
-				"mData": "category" 
+				"mData": "category",
+				"mRender" : WPA.renderCategoryAndTerrainColumn
 			},{
 				"mData": "age_category",
 				"mRender" : WPA.renderAgeCategoryColumn
@@ -295,15 +97,13 @@ WPA.MyResults = {
 				"mData": "time",
 				"mRender": WPA.renderTimeColumn
 			},{
+				"mData": "time",
+				"mRender": WPA.renderPaceMilesColumn,
+				"bSortable": false
+			},{
 				"mData": "position",
 				"sWidth": "20px",
 				"mRender": WPA.renderPositionColumn,
-				"sClass": "datatable-center"
-			},{
-				"mData": "club_rank",
-				"sWidth": "20px",
-				"bSortable": false,
-				"mRender": WPA.renderClubRankColumn,
 				"sClass": "datatable-center"
 			},{
 				"mData": "garmin_id",
@@ -317,6 +117,8 @@ WPA.MyResults = {
 		WPA.MyResults.pbTable = jQuery('#my-personal-bests-table').dataTable(WPA.createTableConfig({
 			"sDom": 'rt',
 			"bPaginate": false,
+			"sScrollX": "100%",
+			"bScrollCollapse": true,
 			"aaSorting": [[ 2, "asc" ]],
 			"aoColumns": [{ 
 				"mData": "time_format",
@@ -339,11 +141,16 @@ WPA.MyResults = {
 				"mData": "time",
 				"sClass": "datatable-bold",
 				"mRender": WPA.renderTimeColumn
+			},{
+				"mData": "time",
+				"mRender": WPA.renderPaceMilesColumn,
+				"bSortable": false
 			},{ 
 				"mData": "event_name",
 				"mRender" : WPA.renderEventLinkColumn
 			},{
-				"mData": "event_location"
+				"mData": "event_location",
+				"mRender": WPA.renderEventLocationColumn
 			},{
 				"mData": "event_sub_type_id",
 				"mRender" : WPA.renderEventTypeColumn
@@ -366,6 +173,15 @@ WPA.MyResults = {
 			}]
 		}));
 
+	},
+	
+	/**
+	 * Deletes a result
+	 */
+	deleteResult: function(id) {
+		WPA.deleteResult(id, function() {
+			WPA.MyResults.reloadResults();
+		});
 	},
 	
 	/**

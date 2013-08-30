@@ -11,6 +11,7 @@ Author URI: http://www.conormccauley.me
 include_once 'includes/wp-athletics-functions.php';
 include_once 'includes/wp-athletics-db.php';
 include_once 'includes/wp-athletics-my-results.php';
+include_once 'includes/wp-athletics-event-results.php';
 include_once 'includes/wp-athletics-records.php';
 include_once 'includes/wp-athletics-admin-settings.php';
 
@@ -39,9 +40,11 @@ if(!class_exists('WP_Athletics')) {
 		 **/
 		public function __construct() {
 			$this->setup();
+			$this->wpa_db = new WP_Athletics_DB();
 
 			// admin
 			if( is_admin() ) {
+				$this->wpa_admin = new WP_Athletics_Admin( $this->wpa_db );
 				add_action( 'admin_menu', array( $this, 'do_admin' ) );
 			}
 			else {
@@ -59,9 +62,9 @@ if(!class_exists('WP_Athletics')) {
 			$wpa_settings = require 'includes/wp-athletics-settings.php';
 
 			// create objects
-			$this->wpa_db = new WP_Athletics_DB();
 			$this->wpa_records = new WP_Athletics_Records( $this->wpa_db );
 			$this->wpa_my_results = new WP_Athletics_My_Results( $this->wpa_db );
+			$this->wpa_event_results = new WP_Athletics_Event_Results( $this->wpa_db );
 
 			// installation and uninstallation hooks
 			register_activation_hook( __FILE__, array ( $this, 'activate') );
@@ -70,6 +73,7 @@ if(!class_exists('WP_Athletics')) {
 
 			// short codes
 			add_shortcode( 'wpa-records', array( $this, 'do_records' ) );
+			add_shortcode( 'wpa-event', array( $this, 'do_event_results' ) );
 			add_shortcode( 'wpa-my-results', array( $this, 'do_my_results' ) );
 
 			add_action('init', array( $this , 'register_assets') );
@@ -82,31 +86,35 @@ if(!class_exists('WP_Athletics')) {
 			global $post;
 			global $records_gender;
 
-			// my results
-			if( $post->ID == get_option('wp-athletics_my_results_page_id') ) {
-				$filter = array( $this->wpa_my_results, 'my_results_content_filter' );
-			}
+			$this->enqueue_scripts();
 
-			// records (both)
-			if( $post->ID == get_option('wp-athletics_records_page_id') ) {
-				$filter = array( $this->wpa_records, 'records_content_filter' );
-			}
+			if( isset( $post->ID ) ) {
+				// my results
+				if( $post->ID == get_option('wp-athletics_my_results_page_id') ) {
+					$filter = array( $this->wpa_my_results, 'my_results_content_filter' );
+				}
 
-			// records (male)
-			if( $post->ID == get_option('wp-athletics_records_male_page_id') ) {
-				$records_gender = 'M';
-				$filter = array( $this->wpa_records, 'records_content_filter' );
-			}
+				// records (both)
+				else if( $post->ID == get_option('wp-athletics_records_page_id') ) {
+					$filter = array( $this->wpa_records, 'records_content_filter' );
+				}
 
-			// records (female)
-			if( $post->ID == get_option('wp-athletics_records_female_page_id') ) {
-				$records_gender = 'F';
-				$filter = array( $this->wpa_records, 'records_content_filter' );
-			}
+				// records (male)
+				else if( $post->ID == get_option('wp-athletics_records_male_page_id') ) {
+					$records_gender = 'M';
+					$filter = array( $this->wpa_records, 'records_content_filter' );
+				}
 
-			if( isset ( $filter ) ) {
-				$this->enqueue_scripts();
-				add_filter('the_content', $filter, 1);
+				// records (female)
+				else if( $post->ID == get_option('wp-athletics_records_female_page_id') ) {
+					$records_gender = 'F';
+					$filter = array( $this->wpa_records, 'records_content_filter' );
+				}
+
+				if( isset ( $filter ) ) {
+					//$this->enqueue_scripts();
+					add_filter('the_content', $filter, 1);
+				}
 			}
  		}
 
@@ -145,7 +153,6 @@ if(!class_exists('WP_Athletics')) {
 			// styles
 			wp_register_style( 'datatables', WPA_PLUGIN_URL . '/resources/css/jquery.dataTables.css' );
 			wp_register_style( 'wpa_style', WPA_PLUGIN_URL . '/resources/css/wpa-style.css' );
-			wp_register_style( 'wpa_theme_jqueryui', WPA_PLUGIN_URL . '/resources/css/themes/' . $theme . '/jquery-ui.css' );
 		}
 
 		/**
@@ -185,7 +192,6 @@ if(!class_exists('WP_Athletics')) {
 		 * Generates admin menu options
 		 */
 		public function do_admin() {
-			$this->wpa_admin = new WP_Athletics_Admin( $this->wpa_db );
 			add_filter('plugin_action_links', array( $this->wpa_admin, 'action_links' ), 10, 2 );
 			$this->wpa_admin->admin_menu();
 		}
@@ -202,6 +208,16 @@ if(!class_exists('WP_Athletics')) {
 		 */
 		public function do_my_results( $atts) {
 			$this->wpa_my_results->my_results( $atts );
+		}
+
+		/**
+		 * Shortcode action for an event result with a supplied id
+		 */
+		public function do_event_results( $atts) {
+			ob_start();
+			$this->wpa_event_results->event_results( $atts );
+			$content = ob_get_clean();
+			return $content;
 		}
 
 		/**
@@ -225,6 +241,9 @@ if(!class_exists('WP_Athletics')) {
 
 				// create a records pages
 				$this->wpa_records->create_pages();
+
+				// add admin capabilities
+				$this->wpa_db->toggle_capabilities();
 			}
 		}
 
@@ -254,15 +273,19 @@ if(!class_exists('WP_Athletics')) {
 
 			// remove pages we created
 			$pages_created = get_option( 'wp-athletics_pages_created' );
-			foreach( $pages_created as $page_id ) {
-				wpa_log('deleting page ' . $page_id);
-				wp_delete_post( $page_id, true );
+			if( $pages_created && is_array ( $pages_created ) ) {
+				foreach( $pages_created as $page_id ) {
+					wpa_log('deleting page ' . $page_id);
+					wp_delete_post( $page_id, true );
+				}
 			}
 
 			// remove tables and meta data
 			$wpa_db = new WP_Athletics_DB();
 			$wpa_db->uninstall_wpa();
 
+			// remove admin capabilities
+			$wpa_db->toggle_capabilities(false);
 		}
 	}
 
